@@ -1,0 +1,54 @@
+Windows Registry Editor Version 5.00
+
+; Register OpenWith Tool as a browser
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool]
+@="OpenWith Tool - Browser Selector"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\DefaultIcon]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\",0"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\InstallInfo]
+"ReinstallCommand"="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" --register"
+"HideIconsCommand"="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" --hide-icons"
+"ShowIconsCommand"="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" --show-icons"
+"IconsVisible"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\shell\open\command]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\Capabilities]
+"ApplicationName"="OpenWith Tool - Browser Selector"
+"ApplicationDescription"="Browser selection tool for opening web links"
+"ApplicationIcon"="C:\\Program Files\\OpenWithTool\\OpenWithTool.exe,0"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\Capabilities\FileAssociations]
+".htm"="OpenWithToolHTML"
+".html"="OpenWithToolHTML"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool\Capabilities\URLAssociations]
+"http"="OpenWithToolURL"
+"https"="OpenWithToolURL"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\RegisteredApplications]
+"OpenWithTool"="SOFTWARE\\Clients\\StartMenuInternet\\OpenWithTool\\Capabilities"
+
+; Register URL protocol handlers
+[HKEY_CLASSES_ROOT\OpenWithToolURL]
+@="URL:http Protocol"
+"URL Protocol"=""
+
+[HKEY_CLASSES_ROOT\OpenWithToolURL\DefaultIcon]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\",0"
+
+[HKEY_CLASSES_ROOT\OpenWithToolURL\shell\open\command]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" \"%1\""
+
+; Register HTML file type
+[HKEY_CLASSES_ROOT\OpenWithToolHTML]
+@="HTML Document"
+
+[HKEY_CLASSES_ROOT\OpenWithToolHTML\DefaultIcon]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\",0"
+
+[HKEY_CLASSES_ROOT\OpenWithToolHTML\shell\open\command]
+@="\"C:\\Program Files\\OpenWithTool\\OpenWithTool.exe\" \"%1\""

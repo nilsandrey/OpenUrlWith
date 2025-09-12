@@ -1,0 +1,238 @@
+<Window x:Class="OpenWithTool.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="OpenWith Tool - Settings" 
+        Height="450" 
+        Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Settings" 
+                   FontSize="20" 
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,20"/>
+
+        <!-- Settings Panel -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                
+                <!-- Auto-Selection Settings -->
+                <GroupBox Header="Auto-Selection" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <CheckBox Content="Enable auto-selection" 
+                                  IsChecked="{Binding EnableAutoSelect}"
+                                  Margin="0,0,0,12"/>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Timeout (seconds):" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+                            
+                            <Slider Grid.Column="1"
+                                    Minimum="1" 
+                                    Maximum="30" 
+                                    Value="{Binding AutoSelectTimeoutSeconds}"
+                                    TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,12,0"/>
+                            
+                            <TextBlock Grid.Column="2" 
+                                       Text="{Binding AutoSelectTimeoutSeconds}" 
+                                       VerticalAlignment="Center"
+                                       MinWidth="20"
+                                       TextAlignment="Center"/>
+                        </Grid>
+                        
+                        <TextBlock Text="Time to wait before automatically selecting the last used browser"
+                                   FontSize="11"
+                                   Foreground="#6C757D"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Cache Settings -->
+                <GroupBox Header="Browser Detection" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Cache duration (hours):" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+                            
+                            <Slider Grid.Column="1"
+                                    Minimum="1" 
+                                    Maximum="168" 
+                                    Value="{Binding CacheDurationHours}"
+                                    TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,12,0"/>
+                            
+                            <TextBlock Grid.Column="2" 
+                                       Text="{Binding CacheDurationHours}" 
+                                       VerticalAlignment="Center"
+                                       MinWidth="30"
+                                       TextAlignment="Center"/>
+                        </Grid>
+                        
+                        <TextBlock Text="How long to cache the browser list before refreshing automatically"
+                                   FontSize="11"
+                                   Foreground="#6C757D"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- UI Settings -->
+                <GroupBox Header="User Interface" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <CheckBox Content="Show settings button in main dialog" 
+                                  IsChecked="{Binding ShowSettingsButton}"
+                                  Margin="0,0,0,8"/>
+                        
+                        <TextBlock Text="Controls whether the Settings button is visible in the main browser selection dialog"
+                                   FontSize="11"
+                                   Foreground="#6C757D"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Browser Registration -->
+                <GroupBox Header="Browser Registration" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="Status:" 
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,8,0"/>
+                            
+                            <TextBlock Grid.Column="1">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Not Registered"/>
+                                        <Setter Property="Foreground" Value="Red"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRegisteredAsDefaultBrowser}" Value="True">
+                                                <Setter Property="Text" Value="Registered"/>
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Content="Register as Browser" 
+                                    Command="{Binding RegisterBrowserCommand}"
+                                    Width="140" 
+                                    Height="32" 
+                                    Margin="0,0,8,0"
+                                    IsEnabled="{Binding IsRunningAsAdministrator}"/>
+                            
+                            <Button Content="Unregister" 
+                                    Command="{Binding UnregisterBrowserCommand}"
+                                    Width="100" 
+                                    Height="32" 
+                                    Margin="0,0,8,0"
+                                    IsEnabled="{Binding IsRunningAsAdministrator}"/>
+                            
+                            <Button Content="Default Apps Settings" 
+                                    Command="{Binding OpenDefaultAppsCommand}"
+                                    Width="140" 
+                                    Height="32"/>
+                        </StackPanel>
+                        
+                        <TextBlock FontSize="11"
+                                   Foreground="#6C757D"
+                                   TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Registration requires administrator privileges. Run as administrator to register/unregister."/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunningAsAdministrator}" Value="True">
+                                            <Setter Property="Text" Value="Running as administrator. You can register/unregister this application as a browser."/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </GroupBox>
+                
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <TextBlock Grid.Row="2" 
+                   Text="{Binding StatusMessage}" 
+                   FontSize="11" 
+                   Foreground="#6C757D" 
+                   Margin="0,12,0,12"
+                   TextTrimming="CharacterEllipsis"
+                   TextWrapping="Wrap"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Save" 
+                    Command="{Binding SaveCommand}"
+                    Width="80" 
+                    Height="32" 
+                    Margin="0,0,8,0"
+                    IsDefault="True"
+                    Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"
+                    Background="#28A745"
+                    Foreground="White"
+                    BorderBrush="#28A745"/>
+            
+            <Button Content="Cancel" 
+                    Command="{Binding CancelCommand}"
+                    Width="80" 
+                    Height="32"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+
+    <Window.Resources>
+        <!-- Value Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- Custom converters would need to be implemented in code-behind or separate classes -->
+        
+    </Window.Resources>
+</Window>

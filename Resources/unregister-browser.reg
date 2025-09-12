@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+; Unregister OpenWith Tool as a browser
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\OpenWithTool]
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\RegisteredApplications]
+"OpenWithTool"=-
+
+; Remove URL protocol handlers
+[-HKEY_CLASSES_ROOT\OpenWithToolURL]
+[-HKEY_CLASSES_ROOT\OpenWithToolHTML]
