@@ -29,6 +29,7 @@ bld/
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+*.draft.prompt.md
 
 # User-specific files
 *.rsuser
