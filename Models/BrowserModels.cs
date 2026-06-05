@@ -7,13 +7,26 @@ namespace OpenWithTool.Models;
 public class BrowserInfo : INotifyPropertyChanged
 {
     private bool _isSelected;
+    private BrowserProfile? _selectedProfile;
     
     public string Name { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string ExecutablePath { get; set; } = string.Empty;
     public string IconPath { get; set; } = string.Empty;
     public List<BrowserProfile> Profiles { get; set; } = new();
-    public BrowserProfile? SelectedProfile { get; set; }
+    public BrowserProfile? SelectedProfile
+    {
+        get => _selectedProfile;
+        set
+        {
+            if (ReferenceEquals(_selectedProfile, value))
+                return;
+
+            _selectedProfile = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FullDisplayName));
+        }
+    }
     
     public bool IsSelected
     {
