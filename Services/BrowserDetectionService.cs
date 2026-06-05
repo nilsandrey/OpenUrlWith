@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
+using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OpenWithTool.Models;
 
 namespace OpenWithTool.Services;
@@ -37,10 +39,10 @@ public class BrowserDetectionService : IBrowserDetectionService
         {
             var cachedBrowsers = await LoadCacheAsync();
             if (cachedBrowsers != null)
-                return cachedBrowsers;
+                return NormalizeBrowsers(cachedBrowsers);
         }
 
-        var browsers = await DetectBrowsersAsync();
+        var browsers = NormalizeBrowsers(await DetectBrowsersAsync());
         await SaveCacheAsync(browsers);
         return browsers;
     }
@@ -121,7 +123,160 @@ public class BrowserDetectionService : IBrowserDetectionService
         // Detect other browsers from registry
         await DetectBrowsersFromRegistry(browsers);
 
-        return browsers.OrderBy(b => b.DisplayName).ToList();
+        return NormalizeBrowsers(browsers);
+    }
+
+    private static List<BrowserInfo> NormalizeBrowsers(List<BrowserInfo> browsers)
+    {
+        return browsers
+            .Select(RefreshChromiumProfileDisplayNames)
+            .Where(b => !IsCurrentToolExecutable(b.ExecutablePath))
+            .GroupBy(GetBrowserIdentity, StringComparer.OrdinalIgnoreCase)
+            .Select(MergeBrowserGroup)
+            .OrderBy(b => b.DisplayName)
+            .ToList();
+    }
+
+    private static BrowserInfo RefreshChromiumProfileDisplayNames(BrowserInfo browser)
+    {
+        if (!IsChromiumProfileBrowser(browser) || !browser.Profiles.Any())
+            return browser;
+
+        var profilePaths = browser.Profiles
+            .Where(profile => !string.IsNullOrWhiteSpace(profile.ProfilePath) && Directory.Exists(profile.ProfilePath))
+            .Select(profile => profile.ProfilePath)
+            .ToList();
+
+        var userDataDir = profilePaths
+            .Select(profilePath => Directory.GetParent(profilePath)?.FullName)
+            .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path));
+
+        if (userDataDir == null)
+            return browser;
+
+        var localStateProfiles = LoadChromiumProfiles(userDataDir);
+
+        foreach (var profile in browser.Profiles.Where(profile =>
+                     !string.IsNullOrWhiteSpace(profile.ProfilePath) && Directory.Exists(profile.ProfilePath)))
+        {
+            var profileDirectoryName = Path.GetFileName(profile.ProfilePath);
+            profile.Name = GetChromiumProfileDisplayName(
+                profile.ProfilePath,
+                profileDirectoryName,
+                localStateProfiles);
+        }
+
+        browser.Profiles = GetProfilesWithUniqueDisplayNames(
+            FilterChromeWildcardProfiles(browser, browser.Profiles, localStateProfiles)).ToList();
+
+        if (browser.SelectedProfile != null && !browser.Profiles.Contains(browser.SelectedProfile))
+        {
+            browser.SelectedProfile = browser.Profiles.FirstOrDefault(profile => profile.IsDefault)
+                                      ?? browser.Profiles.FirstOrDefault();
+        }
+
+        return browser;
+    }
+
+    private static bool IsChromiumProfileBrowser(BrowserInfo browser)
+    {
+        return browser.Name.Equals("chrome", StringComparison.OrdinalIgnoreCase)
+               || browser.Name.Equals("edge", StringComparison.OrdinalIgnoreCase)
+               || browser.Name.Equals("brave", StringComparison.OrdinalIgnoreCase)
+               || browser.Name.Equals("vivaldi", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCurrentToolExecutable(string executablePath)
+    {
+        var browserPath = NormalizeExecutablePath(executablePath);
+        if (browserPath == null)
+            return false;
+
+        return GetCurrentToolExecutablePaths().Any(toolPath =>
+            string.Equals(toolPath, browserPath, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static IEnumerable<string> GetCurrentToolExecutablePaths()
+    {
+        var entryAssembly = Assembly.GetEntryAssembly();
+        var assemblyLocation = entryAssembly?.Location;
+        var assemblyName = entryAssembly?.GetName().Name;
+
+        var candidates = new[]
+        {
+            Environment.ProcessPath,
+            assemblyLocation,
+            string.IsNullOrWhiteSpace(assemblyLocation) ? null : Path.ChangeExtension(assemblyLocation, ".exe"),
+            string.IsNullOrWhiteSpace(assemblyName) ? null : Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.exe")
+        };
+
+        return candidates
+            .Select(NormalizeExecutablePath)
+            .OfType<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string? NormalizeExecutablePath(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath))
+            return null;
+
+        try
+        {
+            return Path.GetFullPath(executablePath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetBrowserIdentity(BrowserInfo browser)
+    {
+        if (!string.IsNullOrWhiteSpace(browser.ExecutablePath))
+            return NormalizeExecutablePath(browser.ExecutablePath)?.ToUpperInvariant() ?? browser.ExecutablePath;
+
+        return !string.IsNullOrWhiteSpace(browser.Name)
+            ? browser.Name
+            : browser.DisplayName;
+    }
+
+    private static BrowserInfo MergeBrowserGroup(IEnumerable<BrowserInfo> browserGroup)
+    {
+        var browsers = browserGroup.ToList();
+        var primary = browsers
+            .OrderByDescending(b => b.Profiles.Count)
+            .ThenByDescending(b => b.Profiles.Count(p => !string.IsNullOrWhiteSpace(p.ProfilePath)))
+            .First();
+
+        foreach (var browser in browsers.Where(b => !ReferenceEquals(b, primary)))
+        {
+            foreach (var profile in browser.Profiles.Where(profile =>
+                         !primary.Profiles.Any(existingProfile => AreSameProfile(existingProfile, profile))))
+                primary.Profiles.Add(profile);
+        }
+
+        if (primary.SelectedProfile == null && primary.Profiles.Any())
+        {
+            primary.SelectedProfile = primary.Profiles.FirstOrDefault(p => p.IsDefault)
+                                      ?? primary.Profiles[0];
+        }
+
+        return primary;
+    }
+
+    private static bool AreSameProfile(BrowserProfile first, BrowserProfile second)
+    {
+        if (!string.IsNullOrWhiteSpace(first.ProfilePath) && !string.IsNullOrWhiteSpace(second.ProfilePath))
+        {
+            return Path.GetFullPath(first.ProfilePath).Equals(
+                Path.GetFullPath(second.ProfilePath),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Equals(first.Arguments, second.Arguments, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(first.Name, second.Name, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task AddBrowserIfInstalled(List<BrowserInfo> browsers, Task<BrowserInfo?> browserTask)
@@ -341,38 +496,176 @@ public class BrowserDetectionService : IBrowserDetectionService
             return;
         }
 
+        var localStateProfiles = LoadChromiumProfiles(userDataDir);
+        var detectedProfiles = new List<BrowserProfile>();
+
         foreach (var profileDir in profileDirs)
         {
-            var profileName = Path.GetFileName(profileDir);
-            var prefsFile = Path.Combine(profileDir, "Preferences");
+            var profileDirectoryName = Path.GetFileName(profileDir);
+            var displayName = GetChromiumProfileDisplayName(
+                profileDir,
+                profileDirectoryName,
+                localStateProfiles);
+            var arguments = profileDirectoryName == "Default" ? "" : $"--profile-directory=\"{profileDirectoryName}\"";
             
-            var displayName = profileName;
-            if (File.Exists(prefsFile))
-            {
-                try
-                {
-                    var prefsJson = File.ReadAllText(prefsFile);
-                    dynamic prefs = JsonConvert.DeserializeObject(prefsJson)!;
-                    if (prefs?.profile?.name != null)
-                    {
-                        displayName = prefs.profile.name.ToString();
-                    }
-                }
-                catch
-                {
-                    // Use folder name if prefs can't be read
-                }
-            }
-
-            var arguments = profileName == "Default" ? "" : $"--profile-directory=\"{profileName}\"";
-            
-            browser.Profiles.Add(new BrowserProfile
+            detectedProfiles.Add(new BrowserProfile
             {
                 Name = displayName,
                 ProfilePath = profileDir,
                 Arguments = arguments,
-                IsDefault = profileName == "Default"
+                IsDefault = profileDirectoryName == "Default"
             });
+        }
+
+        foreach (var profile in GetProfilesWithUniqueDisplayNames(
+                     FilterChromeWildcardProfiles(browser, detectedProfiles, localStateProfiles)))
+            browser.Profiles.Add(profile);
+    }
+
+    private static List<BrowserProfile> FilterChromeWildcardProfiles(
+        BrowserInfo browser,
+        List<BrowserProfile> profiles,
+        Dictionary<string, ChromiumProfileInfo> localStateProfiles)
+    {
+        if (!browser.Name.Equals("chrome", StringComparison.OrdinalIgnoreCase) || profiles.Count <= 1)
+            return profiles;
+
+        return profiles
+            .Where(profile => !IsChromeWildcardProfile(profile, localStateProfiles))
+            .ToList();
+    }
+
+    private static bool IsChromeWildcardProfile(
+        BrowserProfile profile,
+        Dictionary<string, ChromiumProfileInfo> localStateProfiles)
+    {
+        var profileDirectoryName = Path.GetFileName(profile.ProfilePath);
+        if (!profileDirectoryName.Equals("Default", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!localStateProfiles.TryGetValue(profileDirectoryName, out var profileInfo))
+            return false;
+
+        return profileInfo.IsUsingDefaultName
+               && !profileInfo.HasGaiaName
+               && !profileInfo.HasUserName;
+    }
+
+    private static Dictionary<string, ChromiumProfileInfo> LoadChromiumProfiles(string userDataDir)
+    {
+        var localStateFile = Path.Combine(userDataDir, "Local State");
+        if (!File.Exists(localStateFile))
+            return new Dictionary<string, ChromiumProfileInfo>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var localStateJson = File.ReadAllText(localStateFile);
+            var localState = JObject.Parse(localStateJson);
+            var infoCache = localState["profile"]?["info_cache"] as JObject;
+
+            if (infoCache == null)
+                return new Dictionary<string, ChromiumProfileInfo>(StringComparer.OrdinalIgnoreCase);
+
+            return infoCache.Properties().ToDictionary(
+                property => property.Name,
+                property => ChromiumProfileInfo.FromJson(property.Value as JObject),
+                StringComparer.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return new Dictionary<string, ChromiumProfileInfo>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private static string GetChromiumProfileDisplayName(
+        string profileDir,
+        string profileDirectoryName,
+        Dictionary<string, ChromiumProfileInfo> localStateProfiles)
+    {
+        var preferencesName = GetChromiumPreferencesProfileName(profileDir);
+        var candidates = localStateProfiles.TryGetValue(profileDirectoryName, out var localStateProfile)
+            ? localStateProfile.NameCandidates.Concat(new[] { preferencesName, profileDirectoryName })
+            : new[] { preferencesName, profileDirectoryName };
+
+        return candidates
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .OrderBy(name => IsGenericChromiumProfileName(name!) ? 1 : 0)
+            .First()!;
+    }
+
+    private static string? GetChromiumPreferencesProfileName(string profileDir)
+    {
+        var prefsFile = Path.Combine(profileDir, "Preferences");
+        if (!File.Exists(prefsFile))
+            return null;
+
+        try
+        {
+            var prefsJson = File.ReadAllText(prefsFile);
+            var prefs = JObject.Parse(prefsJson);
+            return prefs["profile"]?["name"]?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsGenericChromiumProfileName(string profileName)
+    {
+        return profileName.Equals("Default", StringComparison.OrdinalIgnoreCase)
+               || profileName.StartsWith("Profile ", StringComparison.OrdinalIgnoreCase)
+               || profileName.StartsWith("Person ", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<BrowserProfile> GetProfilesWithUniqueDisplayNames(List<BrowserProfile> profiles)
+    {
+        foreach (var profileGroup in profiles.GroupBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (profileGroup.Count() == 1)
+            {
+                yield return profileGroup.First();
+                continue;
+            }
+
+            foreach (var profile in profileGroup)
+            {
+                var profileDirectoryName = Path.GetFileName(profile.ProfilePath);
+                profile.Name = $"{profile.Name} ({profileDirectoryName})";
+                yield return profile;
+            }
+        }
+    }
+
+    private sealed class ChromiumProfileInfo
+    {
+        public List<string> NameCandidates { get; init; } = new();
+        public bool IsUsingDefaultName { get; init; }
+        public bool HasGaiaName { get; init; }
+        public bool HasUserName { get; init; }
+
+        public static ChromiumProfileInfo FromJson(JObject? profileInfo)
+        {
+            if (profileInfo == null)
+                return new ChromiumProfileInfo();
+
+            return new ChromiumProfileInfo
+            {
+                NameCandidates = GetNameCandidates(profileInfo).ToList(),
+                IsUsingDefaultName = profileInfo["is_using_default_name"]?.Value<bool>() == true,
+                HasGaiaName = !string.IsNullOrWhiteSpace(profileInfo["gaia_name"]?.ToString()),
+                HasUserName = !string.IsNullOrWhiteSpace(profileInfo["user_name"]?.ToString())
+            };
+        }
+
+        private static IEnumerable<string> GetNameCandidates(JObject profileInfo)
+        {
+            foreach (var fieldName in new[] { "name", "shortcut_name", "local_profile_name" })
+            {
+                var value = profileInfo[fieldName]?.ToString();
+                if (!string.IsNullOrWhiteSpace(value))
+                    yield return value;
+            }
         }
     }
 
@@ -436,6 +729,9 @@ public class BrowserDetectionService : IBrowserDetectionService
                     // Extract executable path from command
                     var executablePath = ExtractExecutablePath(command);
                     if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath))
+                        continue;
+
+                    if (IsCurrentToolExecutable(executablePath))
                         continue;
 
                     var displayName = browserKey.GetValue("")?.ToString() ?? browserKeyName;
