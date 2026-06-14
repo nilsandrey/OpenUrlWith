@@ -1,6 +1,6 @@
 name: Build, Test, Sign, and Release
 
-on:
+"on":
   pull_request:
     branches: [main]
   push:
