@@ -1,0 +1,92 @@
+name: Build, Test, Sign, and Release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build desktop app
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore OpenWithTool.csproj
+
+      - name: Build
+        run: dotnet build OpenWithTool.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test openwith-tool.sln --configuration Release --no-build --verbosity normal
+
+      - name: Publish win-x64
+        if: github.event_name != 'pull_request'
+        run: dotnet publish OpenWithTool.csproj --configuration Release --runtime win-x64 --self-contained true --output publish
+
+      - name: Decode and import signing certificate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          $pfxPath = "$env:RUNNER_TEMP\signing-cert.pfx"
+          $certBytes = [Convert]::FromBase64String("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}")
+          [IO.File]::WriteAllBytes($pfxPath, $certBytes)
+
+          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Sign executable
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\signtool.exe$" } |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $signtool) {
+            throw "signtool.exe was not found"
+          }
+
+          Get-ChildItem publish -Filter *.exe -Recurse | ForEach-Object {
+            & $signtool sign `
+              /sha "$env:WINDOWS_CERTIFICATE_THUMBPRINT" `
+              /fd SHA256 `
+              /tr http://timestamp.digicert.com `
+              /td SHA256 `
+              $_.FullName
+          }
+
+      - name: Package release artifact
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath OpenWithTool-win-x64.zip -Force
+
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWithTool-win-x64
+          path: OpenWithTool-win-x64.zip
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}
+          name: OpenWithTool release ${{ github.run_number }}
+          files: OpenWithTool-win-x64.zip
+          generate_release_notes: true
