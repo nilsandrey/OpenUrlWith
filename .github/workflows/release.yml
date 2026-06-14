@@ -1,4 +1,5 @@
 name: Build, Test, Sign, and Release
+# ASCII-only workflow file; avoid hidden or bidirectional Unicode characters in release automation.
 
 "on":
   pull_request:
