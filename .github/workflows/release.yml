@@ -29,33 +29,13 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore OpenWithTool.csproj
+        run: dotnet restore openwith-tool.sln
 
       - name: Build
-        run: dotnet build OpenWithTool.csproj --configuration Release --no-restore
-
-      - name: Discover test projects
-        id: discover-tests
-        shell: pwsh
-        run: |
-          $testProjects = Get-ChildItem -Recurse -Filter *.csproj |
-            Where-Object {
-              Select-String -Path $_.FullName -Pattern '<PackageReference Include="Microsoft.NET.Test.Sdk"' -Quiet
-            } |
-            Select-Object -ExpandProperty FullName
-
-          if ($testProjects) {
-            'has_tests=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            $testProjects | Set-Content -Path test-projects.txt
-          } else {
-            'has_tests=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host 'No test projects were found; skipping dotnet test.'
-          }
+        run: dotnet build openwith-tool.sln --configuration Release --no-restore
 
       - name: Test
-        if: steps.discover-tests.outputs.has_tests == 'true'
-        shell: pwsh
-        run: Get-Content test-projects.txt | ForEach-Object { dotnet test $_ --configuration Release --no-build --verbosity normal }
+        run: dotnet test openwith-tool.sln --configuration Release --no-build --no-restore --verbosity normal
 
       - name: Publish win-x64
         if: github.event_name != 'pull_request'
@@ -143,6 +123,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: release-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           name: OpenWithTool release ${{ github.run_number }}
           files: OpenWithTool-win-x64.zip
           generate_release_notes: true
