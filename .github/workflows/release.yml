@@ -9,7 +9,7 @@ name: Build, Test, Sign, and Release
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   HAS_WINDOWS_SIGNING_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 != '' && secrets.WINDOWS_CERTIFICATE_PASSWORD != '' }}
@@ -34,8 +34,28 @@ jobs:
       - name: Build
         run: dotnet build OpenWithTool.csproj --configuration Release --no-restore
 
+      - name: Discover test projects
+        id: discover-tests
+        shell: pwsh
+        run: |
+          $testProjects = Get-ChildItem -Recurse -Filter *.csproj |
+            Where-Object {
+              Select-String -Path $_.FullName -Pattern '<PackageReference Include="Microsoft.NET.Test.Sdk"' -Quiet
+            } |
+            Select-Object -ExpandProperty FullName
+
+          if ($testProjects) {
+            'has_tests=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            $testProjects | Set-Content -Path test-projects.txt
+          } else {
+            'has_tests=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host 'No test projects were found; skipping dotnet test.'
+          }
+
       - name: Test
-        run: dotnet test openwith-tool.sln --configuration Release --no-build --verbosity normal
+        if: steps.discover-tests.outputs.has_tests == 'true'
+        shell: pwsh
+        run: Get-Content test-projects.txt | ForEach-Object { dotnet test $_ --configuration Release --no-build --verbosity normal }
 
       - name: Publish win-x64
         if: github.event_name != 'pull_request'
@@ -49,13 +69,26 @@ jobs:
       - name: Decode and import signing certificate
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.HAS_WINDOWS_SIGNING_CERTIFICATE == 'true'
         shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           $pfxPath = "$env:RUNNER_TEMP\signing-cert.pfx"
-          $certBytes = [Convert]::FromBase64String("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}")
+          $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
           [IO.File]::WriteAllBytes($pfxPath, $certBytes)
 
-          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" -AsPlainText -Force
-          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $importedCertificates = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          $codeSigningEku = '1.3.6.1.5.5.7.3.3'
+          $cert = $importedCertificates | Where-Object {
+            $_.HasPrivateKey -and
+            ($_.EnhancedKeyUsageList | Where-Object { $_.ObjectId -eq $codeSigningEku })
+          } | Select-Object -First 1
+
+          if (-not $cert) {
+            throw 'The imported PFX does not contain a certificate with a private key and the code-signing EKU.'
+          }
+
           "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Sign executable
@@ -91,8 +124,22 @@ jobs:
           name: OpenWithTool-win-x64
           path: OpenWithTool-win-x64.zip
 
+
+  release:
+    name: Create GitHub release
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: OpenWithTool-win-x64
+
       - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: release-${{ github.run_number }}
