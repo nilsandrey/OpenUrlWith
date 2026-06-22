@@ -114,6 +114,23 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Read release number
+        id: release_number
+        shell: pwsh
+        run: |
+          $releaseNotes = Get-Content ReleaseNotes.md -Raw
+          $versionMatches = [regex]::Matches($releaseNotes, '\b\d+(?:\.\d+)+\b')
+
+          if ($versionMatches.Count -eq 0) {
+            throw 'ReleaseNotes.md does not contain a release number.'
+          }
+
+          $releaseNumber = $versionMatches[0].Value
+          "number=$releaseNumber" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Download release artifact
         uses: actions/download-artifact@v6
         with:
@@ -122,8 +139,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: release-${{ github.run_number }}
+          tag_name: release-${{ steps.release_number.outputs.number }}
           target_commitish: ${{ github.sha }}
-          name: OpenWithTool release ${{ github.run_number }}
+          name: OpenWithTool ${{ steps.release_number.outputs.number }} - Browser Burrito Bonanza
           files: OpenWithTool-win-x64.zip
           generate_release_notes: true
