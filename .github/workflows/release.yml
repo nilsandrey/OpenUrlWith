@@ -128,7 +128,7 @@ jobs:
             throw 'ReleaseNotes.md does not contain a release number.'
           }
 
-          $releaseNumber = $versionMatches[$versionMatches.Count - 1].Value
+          $releaseNumber = $versionMatches[0].Value
           "number=$releaseNumber" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Download release artifact
@@ -141,6 +141,6 @@ jobs:
         with:
           tag_name: release-${{ steps.release_number.outputs.number }}
           target_commitish: ${{ github.sha }}
-          name: OpenWithTool ${{ steps.release_number.outputs.number }} - Browser Burrito Bonanza
+          name: ${{ steps.release_number.outputs.number }}
           files: OpenWithTool-win-x64.zip
           generate_release_notes: true
