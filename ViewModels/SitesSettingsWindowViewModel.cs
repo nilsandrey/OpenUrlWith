@@ -30,7 +30,6 @@ public class SitesSettingsWindowViewModel : INotifyPropertyChanged
         AddCommand = new RelayCommand(async () => await AddAsync(), CanAdd);
         RemoveCommand = new RelayCommand(async () => await RemoveAsync(), () => SelectedRule != null);
         SaveCommand = new RelayCommand(async () => await SaveAsync());
-        CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
     }
 
     public ObservableCollection<RememberedSiteRule> Rules { get; }
@@ -76,7 +75,6 @@ public class SitesSettingsWindowViewModel : INotifyPropertyChanged
     public ICommand AddCommand { get; }
     public ICommand RemoveCommand { get; }
     public ICommand SaveCommand { get; }
-    public ICommand CancelCommand { get; }
     public event Action? RequestClose;
     public event PropertyChangedEventHandler? PropertyChanged;
 
