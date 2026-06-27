@@ -72,4 +72,66 @@ public class AppSettings
     public string LastSelectedProfile { get; set; } = string.Empty;
     public bool EnableAutoSelect { get; set; } = true;
     public bool ShowSettingsButton { get; set; } = true;
+    public List<RememberedSiteRule> RememberedSiteRules { get; set; } = new();
+}
+
+public enum SiteMatchType
+{
+    ExactUrl,
+    Domain,
+    Path
+}
+
+public class SiteMatchOption
+{
+    public SiteMatchType MatchType { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string Pattern { get; set; } = string.Empty;
+    public string DisplayText => $"{DisplayName} ({Pattern})";
+}
+
+public class RememberedSiteRule : INotifyPropertyChanged
+{
+    private string _pattern = string.Empty;
+    private SiteMatchType _matchType;
+    private string _browserName = string.Empty;
+    private string _browserDisplayName = string.Empty;
+    private string _profileName = string.Empty;
+
+    public string Pattern
+    {
+        get => _pattern;
+        set { _pattern = value; OnPropertyChanged(); }
+    }
+
+    public SiteMatchType MatchType
+    {
+        get => _matchType;
+        set { _matchType = value; OnPropertyChanged(); }
+    }
+
+    public string BrowserName
+    {
+        get => _browserName;
+        set { _browserName = value; OnPropertyChanged(); }
+    }
+
+    public string BrowserDisplayName
+    {
+        get => string.IsNullOrWhiteSpace(_browserDisplayName) ? BrowserName : _browserDisplayName;
+        set { _browserDisplayName = value; OnPropertyChanged(); }
+    }
+
+    public string ProfileName
+    {
+        get => _profileName;
+        set { _profileName = value; OnPropertyChanged(); }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }

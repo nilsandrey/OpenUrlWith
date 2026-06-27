@@ -16,6 +16,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private readonly IBrowserDetectionService _browserDetectionService;
     private readonly IConfigurationService _configurationService;
     private readonly IBrowserLauncherService _browserLauncherService;
+    private readonly IRememberedSiteService _rememberedSiteService;
     private readonly DispatcherTimer _autoSelectTimer;
     
     private string _url = string.Empty;
@@ -23,17 +24,22 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private int _timeRemaining;
     private bool _isTimerActive;
     private string _statusMessage = string.Empty;
+    private bool _rememberSelection;
+    private SiteMatchOption? _selectedMatchOption;
 
     public MainWindowViewModel(
         IBrowserDetectionService browserDetectionService,
         IConfigurationService configurationService,
-        IBrowserLauncherService browserLauncherService)
+        IBrowserLauncherService browserLauncherService,
+        IRememberedSiteService rememberedSiteService)
     {
         _browserDetectionService = browserDetectionService;
         _configurationService = configurationService;
         _browserLauncherService = browserLauncherService;
+        _rememberedSiteService = rememberedSiteService;
 
         Browsers = new ObservableCollection<BrowserInfo>();
+        MatchOptions = new ObservableCollection<SiteMatchOption>();
         
         _autoSelectTimer = new DispatcherTimer
         {
@@ -46,9 +52,11 @@ public class MainWindowViewModel : INotifyPropertyChanged
         LaunchCommand = new RelayCommand(async () => await LaunchSelectedBrowserAsync(), CanLaunch);
         CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
         SettingsCommand = new RelayCommand(() => OpenSettings?.Invoke());
+        SitesSettingsCommand = new RelayCommand(() => OpenSitesSettings?.Invoke());
     }
 
     public ObservableCollection<BrowserInfo> Browsers { get; }
+    public ObservableCollection<SiteMatchOption> MatchOptions { get; }
 
     public string Url
     {
@@ -109,18 +117,45 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+
+    public bool RememberSelection
+    {
+        get => _rememberSelection;
+        set
+        {
+            _rememberSelection = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public SiteMatchOption? SelectedMatchOption
+    {
+        get => _selectedMatchOption;
+        set
+        {
+            _selectedMatchOption = value;
+            OnPropertyChanged();
+        }
+    }
+
     public ICommand RefreshCommand { get; }
     public ICommand LaunchCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand SettingsCommand { get; }
+    public ICommand SitesSettingsCommand { get; }
 
     public event Action? RequestClose;
     public event Action? OpenSettings;
+    public event Action? OpenSitesSettings;
     public event Action? RequestListFocus;
 
     public async Task InitializeAsync(string url)
     {
         Url = url;
+        MatchOptions.Clear();
+        foreach (var option in _rememberedSiteService.BuildMatchOptions(url))
+            MatchOptions.Add(option);
+        SelectedMatchOption = MatchOptions.LastOrDefault() ?? MatchOptions.FirstOrDefault();
         StatusMessage = "Loading browsers...";
         
         await LoadBrowsersAsync();
@@ -284,6 +319,18 @@ public class MainWindowViewModel : INotifyPropertyChanged
             await _configurationService.SaveLastSelectedBrowserAsync(
                 SelectedBrowser.Name,
                 SelectedBrowser.SelectedProfile?.Name ?? string.Empty);
+
+            if (RememberSelection && SelectedMatchOption != null)
+            {
+                await _configurationService.SaveRememberedSiteRuleAsync(new RememberedSiteRule
+                {
+                    Pattern = SelectedMatchOption.Pattern,
+                    MatchType = SelectedMatchOption.MatchType,
+                    BrowserName = SelectedBrowser.Name,
+                    BrowserDisplayName = SelectedBrowser.DisplayName,
+                    ProfileName = SelectedBrowser.SelectedProfile?.Name ?? string.Empty
+                });
+            }
 
             var success = await _browserLauncherService.LaunchBrowserAsync(SelectedBrowser, Url);
             
