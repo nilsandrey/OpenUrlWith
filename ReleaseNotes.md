@@ -1,5 +1,10 @@
 # Release Notes
 
+## 1.1.0 - 2026-06-27
+
+- Remember exact URLs, domains, or paths and automatically open matching links in a chosen browser and profile.
+- Added Sites settings for managing remembered browser rules.
+
 ## 1.0.1 - 2026-06-05
 
 - Profile dropdowns replaced with radio choices.
