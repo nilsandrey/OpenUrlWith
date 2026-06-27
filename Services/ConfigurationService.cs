@@ -13,6 +13,8 @@ public interface IConfigurationService
     Task SaveSettingsAsync(AppSettings settings);
     Task<string> GetLastSelectedBrowserAsync();
     Task SaveLastSelectedBrowserAsync(string browserName, string profileName);
+    Task SaveRememberedSiteRuleAsync(RememberedSiteRule rule);
+    Task DeleteRememberedSiteRuleAsync(RememberedSiteRule rule);
 }
 
 public class ConfigurationService : IConfigurationService
@@ -44,6 +46,7 @@ public class ConfigurationService : IConfigurationService
         {
             var json = await File.ReadAllTextAsync(_settingsPath);
             _cachedSettings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+            _cachedSettings.RememberedSiteRules ??= new System.Collections.Generic.List<RememberedSiteRule>();
         }
         catch
         {
@@ -78,6 +81,21 @@ public class ConfigurationService : IConfigurationService
         var settings = await GetSettingsAsync();
         settings.LastSelectedBrowser = browserName;
         settings.LastSelectedProfile = profileName;
+        await SaveSettingsAsync(settings);
+    }
+
+    public async Task SaveRememberedSiteRuleAsync(RememberedSiteRule rule)
+    {
+        var settings = await GetSettingsAsync();
+        settings.RememberedSiteRules.RemoveAll(r => r.Pattern.Equals(rule.Pattern, StringComparison.OrdinalIgnoreCase));
+        settings.RememberedSiteRules.Add(rule);
+        await SaveSettingsAsync(settings);
+    }
+
+    public async Task DeleteRememberedSiteRuleAsync(RememberedSiteRule rule)
+    {
+        var settings = await GetSettingsAsync();
+        settings.RememberedSiteRules.RemoveAll(r => r.Pattern.Equals(rule.Pattern, StringComparison.OrdinalIgnoreCase));
         await SaveSettingsAsync(settings);
     }
 }

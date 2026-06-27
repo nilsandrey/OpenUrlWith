@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 
         _viewModel.RequestClose += () => Close();
         _viewModel.OpenSettings += OpenSettingsWindow;
+        _viewModel.OpenSitesSettings += OpenSitesSettingsWindow;
         _viewModel.RequestListFocus += () => FocusBrowserList();
         
         // Ensure the browser list gets focus when the window is loaded
@@ -41,6 +42,20 @@ public partial class MainWindow : Window
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
         _viewModel.OnUserInteraction();
+    }
+
+    private void OpenSitesSettingsWindow()
+    {
+        try
+        {
+            var sitesSettingsWindow = _serviceProvider.GetRequiredService<SitesSettingsWindow>();
+            sitesSettingsWindow.Owner = this;
+            sitesSettingsWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error opening sites settings: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void OpenSettingsWindow()

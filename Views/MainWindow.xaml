@@ -4,9 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Open With..." 
-        Height="500" 
-        Width="600"
+        Title="Open With..."
+        Height="560"
+        Width="680"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="False"
@@ -104,36 +104,55 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Title -->
-        <TextBlock Grid.Row="0" 
-                   Text="Select a browser to open the link:" 
-                   FontSize="16" 
+        <TextBlock Grid.Row="0"
+                   Text="Select a browser to open the link:"
+                   FontSize="16"
                    FontWeight="SemiBold"
                    Margin="0,0,0,12"/>
 
         <!-- URL Display -->
-        <Border Grid.Row="1" 
-                Background="#F8F9FA" 
-                BorderBrush="#E9ECEF" 
-                BorderThickness="1" 
-                CornerRadius="4" 
+        <Border Grid.Row="1"
+                Background="#F8F9FA"
+                BorderBrush="#E9ECEF"
+                BorderThickness="1"
+                CornerRadius="4"
                 Padding="8"
                 Margin="0,0,0,12">
-            <TextBlock Text="{Binding Url}" 
+            <TextBlock Text="{Binding Url}"
                        TextWrapping="Wrap"
                        FontFamily="Consolas"
                        FontSize="11"
                        Foreground="#495057"/>
         </Border>
 
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="260"/>
+            </Grid.ColumnDefinitions>
+            <CheckBox Grid.Column="1"
+                      Content="Remember my selection for this site"
+                      IsChecked="{Binding RememberSelection}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,8,0"/>
+            <ComboBox Grid.Column="2"
+                      ItemsSource="{Binding MatchOptions}"
+                      SelectedItem="{Binding SelectedMatchOption}"
+                      DisplayMemberPath="DisplayText"
+                      IsEnabled="{Binding RememberSelection}"/>
+        </Grid>
+
         <!-- Timer Display -->
-        <StackPanel Grid.Row="2" 
-                    Orientation="Horizontal" 
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
                     Margin="0,0,0,8">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
@@ -151,7 +170,7 @@
         </StackPanel>
 
         <!-- Browser List -->
-        <ListBox Grid.Row="3" 
+        <ListBox Grid.Row="4"
                  x:Name="BrowserListBox"
                  ItemsSource="{Binding Browsers}"
                  SelectedItem="{Binding SelectedBrowser}"
@@ -168,28 +187,28 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Browser Icon -->
-                        <Border Grid.Column="0" 
-                                Width="32" 
-                                Height="32" 
-                                Background="#F8F9FA" 
-                                BorderBrush="#DEE2E6" 
-                                BorderThickness="1" 
+                        <Border Grid.Column="0"
+                                Width="32"
+                                Height="32"
+                                Background="#F8F9FA"
+                                BorderBrush="#DEE2E6"
+                                BorderThickness="1"
                                 CornerRadius="4"
                                 Margin="0,0,12,0">
-                            <Image Source="{Binding IconPath}" 
-                                   Width="24" 
-                                   Height="24" 
+                            <Image Source="{Binding IconPath}"
+                                   Width="24"
+                                   Height="24"
                                    Stretch="Uniform"
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Border>
 
                         <!-- Browser Info -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding DisplayName}" 
-                                       FontWeight="SemiBold" 
+                            <TextBlock Text="{Binding DisplayName}"
+                                       FontWeight="SemiBold"
                                        FontSize="14"/>
-                            <TextBlock Text="{Binding SelectedProfile.Name}" 
-                                       FontSize="12" 
+                            <TextBlock Text="{Binding SelectedProfile.Name}"
+                                       FontSize="12"
                                        Foreground="#6C757D">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -226,47 +245,52 @@
         </ListBox>
 
         <!-- Status Bar -->
-        <TextBlock Grid.Row="4" 
-                   Text="{Binding StatusMessage}" 
-                   FontSize="11" 
-                   Foreground="#6C757D" 
+        <TextBlock Grid.Row="5"
+                   Text="{Binding StatusMessage}"
+                   FontSize="11"
+                   Foreground="#6C757D"
                    Margin="0,8,0,8"
                    TextTrimming="CharacterEllipsis"/>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" 
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Right">
-            <Button Content="Refresh" 
+        <DockPanel Grid.Row="6">
+            <Button Content="Sites settings"
+                    Command="{Binding SitesSettingsCommand}"
+                    Width="100"
+                    Height="32"
+                    DockPanel.Dock="Left"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Refresh"
                     Command="{Binding RefreshCommand}"
-                    Width="80" 
-                    Height="32" 
+                    Width="80"
+                    Height="32"
                     Margin="0,0,8,0"
                     Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"/>
-            
-            <Button Content="Settings" 
+
+            <Button Content="Settings"
                     Command="{Binding SettingsCommand}"
-                    Width="80" 
-                    Height="32" 
+                    Width="80"
+                    Height="32"
                     Margin="0,0,8,0"
                     Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"/>
-            
-            <Button Content="Cancel" 
+
+            <Button Content="Cancel"
                     Command="{Binding CancelCommand}"
-                    Width="80" 
-                    Height="32" 
+                    Width="80"
+                    Height="32"
                     Margin="0,0,8,0"
                     IsCancel="True"/>
-            
-            <Button Content="Launch" 
+
+            <Button Content="Open"
                     Command="{Binding LaunchCommand}"
-                    Width="80" 
+                    Width="80"
                     Height="32"
                     IsDefault="True"
                     Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"
                     Background="#0D6EFD"
                     Foreground="White"
                     BorderBrush="#0D6EFD"/>
-        </StackPanel>
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>
