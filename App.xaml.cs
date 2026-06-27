@@ -38,14 +38,14 @@ public partial class App : Application
         var url = e.Args.Length > 0 ? e.Args[0] : "https://www.example.com";
 
         var configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
-        var browserDetectionService = _serviceProvider.GetRequiredService<IBrowserDetectionService>();
-        var browserLauncherService = _serviceProvider.GetRequiredService<IBrowserLauncherService>();
         var rememberedSiteService = _serviceProvider.GetRequiredService<IRememberedSiteService>();
-        var browsers = (await browserDetectionService.GetAvailableBrowsersAsync()).ToList();
         var settings = await configurationService.GetSettingsAsync();
         var matchingRule = rememberedSiteService.FindMatchingRule(settings.RememberedSiteRules, url);
         if (matchingRule != null)
         {
+            var browserDetectionService = _serviceProvider.GetRequiredService<IBrowserDetectionService>();
+            var browserLauncherService = _serviceProvider.GetRequiredService<IBrowserLauncherService>();
+            var browsers = (await browserDetectionService.GetAvailableBrowsersAsync()).ToList();
             var browser = browsers.FirstOrDefault(b => b.Name.Equals(matchingRule.BrowserName, StringComparison.OrdinalIgnoreCase));
             var profile = browser?.Profiles.FirstOrDefault(p => p.Name.Equals(matchingRule.ProfileName, StringComparison.OrdinalIgnoreCase));
             if (browser != null && (string.IsNullOrEmpty(matchingRule.ProfileName) || profile != null))
@@ -78,7 +78,7 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection services)
     {
         // Register services
         services.AddSingleton<IConfigurationService, ConfigurationService>();
