@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using OpenWithTool.ViewModels;
 
@@ -13,6 +14,19 @@ public partial class SitesSettingsWindow : Window
         _viewModel = viewModel;
         DataContext = _viewModel;
         _viewModel.RequestClose += () => Close();
-        Loaded += async (_, _) => await _viewModel.InitializeAsync();
+        Loaded += SitesSettingsWindow_Loaded;
+    }
+
+    private async void SitesSettingsWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _viewModel.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Error loading sites settings: {ex.Message}", "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }
