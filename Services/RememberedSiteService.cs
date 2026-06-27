@@ -54,6 +54,7 @@ public class RememberedSiteService : IRememberedSiteService
             return string.Equals(rule.Pattern, url, StringComparison.OrdinalIgnoreCase);
 
         var prefix = rule.Pattern[..^1];
-        return url.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+        return url.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(url, prefix.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
     }
 }
