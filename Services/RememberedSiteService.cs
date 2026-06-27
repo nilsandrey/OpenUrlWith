@@ -41,8 +41,11 @@ public class RememberedSiteService : IRememberedSiteService
 
     public RememberedSiteRule? FindMatchingRule(IEnumerable<RememberedSiteRule> rules, string url)
     {
+        var normalizedUrl = Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri.AbsoluteUri
+            : url;
         var orderedRules = rules.OrderByDescending(r => r.MatchType == SiteMatchType.ExactUrl ? 3 : r.MatchType == SiteMatchType.Path ? 2 : 1);
-        return orderedRules.FirstOrDefault(rule => IsMatch(rule, url));
+        return orderedRules.FirstOrDefault(rule => IsMatch(rule, normalizedUrl));
     }
 
     private static bool IsMatch(RememberedSiteRule rule, string url)
