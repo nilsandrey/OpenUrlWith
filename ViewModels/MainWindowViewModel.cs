@@ -26,6 +26,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _statusMessage = string.Empty;
     private bool _rememberSelection;
     private SiteMatchOption? _selectedMatchOption;
+    private BrowserInfo? _focusedBrowser;
 
     public MainWindowViewModel(
         IBrowserDetectionService browserDetectionService,
@@ -53,10 +54,25 @@ public class MainWindowViewModel : INotifyPropertyChanged
         CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
         SettingsCommand = new RelayCommand(() => OpenSettings?.Invoke());
         SitesSettingsCommand = new RelayCommand(() => OpenSitesSettings?.Invoke());
+        FocusBrowserCommand = new RelayCommand<BrowserInfo>(async browser => await FocusBrowserAsync(browser), browser => browser != null);
+        ShowOtherBrowsersCommand = new RelayCommand(async () => await ShowOtherBrowsersAsync());
     }
 
     public ObservableCollection<BrowserInfo> Browsers { get; }
     public ObservableCollection<SiteMatchOption> MatchOptions { get; }
+
+    public BrowserInfo? FocusedBrowser
+    {
+        get => _focusedBrowser;
+        set
+        {
+            _focusedBrowser = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsBrowserFocused));
+        }
+    }
+
+    public bool IsBrowserFocused => FocusedBrowser != null;
 
     public string Url
     {
@@ -143,6 +159,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public ICommand CancelCommand { get; }
     public ICommand SettingsCommand { get; }
     public ICommand SitesSettingsCommand { get; }
+    public ICommand FocusBrowserCommand { get; }
+    public ICommand ShowOtherBrowsersCommand { get; }
 
     public event Action? RequestClose;
     public event Action? OpenSettings;
@@ -160,6 +178,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         
         await LoadBrowsersAsync();
         await SelectDefaultBrowserAsync();
+        await RestoreFocusedBrowserAsync();
         await StartAutoSelectTimerAsync();
         
         StatusMessage = "Select a browser or wait for auto-selection";
@@ -247,6 +266,44 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+
+    private async Task RestoreFocusedBrowserAsync()
+    {
+        var settings = await _configurationService.GetSettingsAsync();
+        if (string.IsNullOrWhiteSpace(settings.FocusedBrowserName))
+        {
+            FocusedBrowser = null;
+            return;
+        }
+
+        var focusedBrowser = Browsers.FirstOrDefault(b =>
+            b.Name.Equals(settings.FocusedBrowserName, StringComparison.OrdinalIgnoreCase));
+
+        FocusedBrowser = focusedBrowser;
+        if (FocusedBrowser != null)
+            SelectedBrowser = FocusedBrowser;
+    }
+
+    private async Task FocusBrowserAsync(BrowserInfo? browser)
+    {
+        if (browser == null)
+            return;
+
+        FocusedBrowser = browser;
+        SelectedBrowser = browser;
+        StopTimer();
+        await _configurationService.SaveFocusedBrowserAsync(browser.Name);
+        StatusMessage = "Focused browser view will be remembered for next time";
+    }
+
+    private async Task ShowOtherBrowsersAsync()
+    {
+        FocusedBrowser = null;
+        StopTimer();
+        await _configurationService.SaveFocusedBrowserAsync(string.Empty);
+        StatusMessage = "Select a browser or wait for auto-selection";
+    }
+
     private async Task StartAutoSelectTimerAsync()
     {
         try
@@ -296,6 +353,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             await _browserDetectionService.RefreshBrowserCacheAsync();
             await LoadBrowsersAsync();
             await SelectDefaultBrowserAsync();
+            await RestoreFocusedBrowserAsync();
             
             StatusMessage = "Browser list refreshed";
         }
@@ -383,6 +441,35 @@ public class RelayCommand : ICommand
     public void Execute(object? parameter)
     {
         _execute();
+    }
+
+    public void RaiseCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+public class RelayCommand<T> : ICommand
+{
+    private readonly Action<T?> _execute;
+    private readonly Func<T?, bool>? _canExecute;
+
+    public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
+    {
+        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        _canExecute = canExecute;
+    }
+
+    public event EventHandler? CanExecuteChanged;
+
+    public bool CanExecute(object? parameter)
+    {
+        return _canExecute?.Invoke((T?)parameter) ?? true;
+    }
+
+    public void Execute(object? parameter)
+    {
+        _execute((T?)parameter);
     }
 
     public void RaiseCanExecuteChanged()

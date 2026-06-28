@@ -70,6 +70,7 @@ public class AppSettings
     public int CacheDurationHours { get; set; } = 24;
     public string LastSelectedBrowser { get; set; } = string.Empty;
     public string LastSelectedProfile { get; set; } = string.Empty;
+    public string FocusedBrowserName { get; set; } = string.Empty;
     public bool EnableAutoSelect { get; set; } = true;
     public bool ShowSettingsButton { get; set; } = true;
     public List<RememberedSiteRule> RememberedSiteRules { get; set; } = new();
