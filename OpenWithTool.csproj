@@ -6,6 +6,7 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyTitle>OpenWith Tool</AssemblyTitle>
     <AssemblyDescription>Browser selection tool for web links</AssemblyDescription>
     <Version>1.1.0</Version>

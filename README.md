@@ -1,5 +1,7 @@
 # OpenWith Tool
 
+<img src="Resources/app-icon.png" alt="OpenWith Tool icon" width="220">
+
 A Windows desktop application that allows you to select which browser to open web links with. When set as the default browser, it presents a dialog with a list of installed browsers and their profiles, allowing you to choose how to open each link.
 
 ## Features
