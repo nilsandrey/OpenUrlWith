@@ -177,12 +177,23 @@
                  ItemContainerStyle="{StaticResource BrowserItemStyle}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  SelectionMode="Single">
+            <ListBox.Style>
+                <Style TargetType="ListBox">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsBrowserFocused}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.Style>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -239,10 +250,102 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+
+                        <Button Grid.Column="3"
+                                Command="{Binding DataContext.FocusBrowserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                ToolTip="Focus on this browser"
+                                Width="36"
+                                Height="32"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                Content="↪"
+                                FontSize="18"/>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+
+
+
+        <!-- Focused Browser Profile Picker -->
+        <Border Grid.Row="4"
+                Background="White"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="14">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsBrowserFocused}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel>
+                <DockPanel Margin="0,0,0,16">
+                    <Button Content="Other browser"
+                            Command="{Binding ShowOtherBrowsersCommand}"
+                            DockPanel.Dock="Right"
+                            Width="110"
+                            Height="32"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="40" Height="40" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="1" CornerRadius="4" Margin="0,0,12,0">
+                            <Image Source="{Binding FocusedBrowser.IconPath}" Width="30" Height="30" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <TextBlock Text="{Binding FocusedBrowser.DisplayName}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <TextBlock Text="Choose a profile:" Margin="0,0,0,8"/>
+                <ItemsControl ItemsSource="{Binding FocusedBrowser.Profiles}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding DataContext.SelectFocusedProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Width="96"
+                                    Height="118"
+                                    Margin="0,0,12,0"
+                                    Padding="8">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Background" Value="#E6F3FF"/>
+                                                <Setter Property="BorderBrush" Value="#1E90FF"/>
+                                                <Setter Property="BorderThickness" Value="2"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="48" Height="48" CornerRadius="24" Background="#0D6EFD" Margin="0,0,0,8">
+                                        <TextBlock Text="👤" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="ⓘ This focused view will be remembered for next time."
+                           Foreground="#5A6F95"
+                           FontSize="12"
+                           Margin="0,14,0,0"/>
+            </StackPanel>
+        </Border>
 
         <!-- Status Bar -->
         <TextBlock Grid.Row="5"

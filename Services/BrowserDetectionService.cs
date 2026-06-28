@@ -164,6 +164,7 @@ public class BrowserDetectionService : IBrowserDetectionService
                 profile.ProfilePath,
                 profileDirectoryName,
                 localStateProfiles);
+            profile.Arguments = GetChromiumProfileArguments(profileDirectoryName);
         }
 
         browser.Profiles = GetProfilesWithUniqueDisplayNames(
@@ -506,13 +507,12 @@ public class BrowserDetectionService : IBrowserDetectionService
                 profileDir,
                 profileDirectoryName,
                 localStateProfiles);
-            var arguments = profileDirectoryName == "Default" ? "" : $"--profile-directory=\"{profileDirectoryName}\"";
-            
+
             detectedProfiles.Add(new BrowserProfile
             {
                 Name = displayName,
                 ProfilePath = profileDir,
-                Arguments = arguments,
+                Arguments = GetChromiumProfileArguments(profileDirectoryName),
                 IsDefault = profileDirectoryName == "Default"
             });
         }
@@ -520,6 +520,11 @@ public class BrowserDetectionService : IBrowserDetectionService
         foreach (var profile in GetProfilesWithUniqueDisplayNames(
                      FilterChromeWildcardProfiles(browser, detectedProfiles, localStateProfiles)))
             browser.Profiles.Add(profile);
+    }
+
+    private static string GetChromiumProfileArguments(string profileDirectoryName)
+    {
+        return $"--profile-directory=\"{profileDirectoryName}\"";
     }
 
     private static List<BrowserProfile> FilterChromeWildcardProfiles(

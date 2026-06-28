@@ -15,6 +15,7 @@ public interface IConfigurationService
     Task SaveLastSelectedBrowserAsync(string browserName, string profileName);
     Task SaveRememberedSiteRuleAsync(RememberedSiteRule rule);
     Task DeleteRememberedSiteRuleAsync(RememberedSiteRule rule);
+    Task SaveFocusedBrowserAsync(string browserName);
 }
 
 public class ConfigurationService : IConfigurationService
@@ -96,6 +97,13 @@ public class ConfigurationService : IConfigurationService
     {
         var settings = await GetSettingsAsync();
         settings.RememberedSiteRules.RemoveAll(r => r.Pattern.Equals(rule.Pattern, StringComparison.OrdinalIgnoreCase));
+        await SaveSettingsAsync(settings);
+    }
+
+    public async Task SaveFocusedBrowserAsync(string browserName)
+    {
+        var settings = await GetSettingsAsync();
+        settings.FocusedBrowserName = browserName;
         await SaveSettingsAsync(settings);
     }
 }
