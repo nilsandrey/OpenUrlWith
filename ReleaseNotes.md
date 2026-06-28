@@ -1,5 +1,12 @@
 # Release Notes
 
+## 1.2.0 - 2026-06-28
+
+- Added a focused browser view that remembers a preferred browser and shows its profiles as horizontal icon buttons.
+- Added an Other browser action to return from the focused profile picker to the full browser list.
+- Fixed focused profile selection so the first profile can be selected again after switching to another profile.
+- Added release/versioning guidance for future agent changes.
+
 ## 1.1.0 - 2026-06-27
 
 - Remember exact URLs, domains, or paths and automatically open matching links in a chosen browser and profile.

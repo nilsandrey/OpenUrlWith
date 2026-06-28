@@ -8,9 +8,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyTitle>OpenWith Tool</AssemblyTitle>
     <AssemblyDescription>Browser selection tool for web links</AssemblyDescription>
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
     <Copyright>Copyright © 2025</Copyright>
   </PropertyGroup>
 

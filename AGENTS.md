@@ -7,6 +7,13 @@
 - Runtime settings and browser cache are per-user files under `%APPDATA%\OpenWithTool`; `appsettings.json` only provides bundled defaults.
 - See [README.md](README.md) for installation, default-browser registration, usage, and supported-browser details. See [Resources/icon-readme.md](Resources/icon-readme.md) before changing icon-related project settings.
 
+## Release And Versioning
+
+- Always update `ReleaseNotes.md` for user-visible changes, bug fixes, behavior changes, documentation/process changes, and version bumps.
+- Follow semantic versioning when changing the project version in `OpenWithTool.csproj`: increment MAJOR for breaking changes, MINOR for backward-compatible features, and PATCH for backward-compatible bug fixes or maintenance-only updates.
+- When a change includes both a feature and a fix, use the highest applicable semantic-version increment and document both in the release notes.
+- Keep release note entries concise, user-facing, and grouped under a dated version heading.
+
 ## Build And Run
 
 - Restore/build: `dotnet restore` then `dotnet build OpenWithTool.csproj`.
