@@ -301,37 +301,44 @@
                 </DockPanel>
 
                 <TextBlock Text="Choose a profile:" Margin="0,0,0,8"/>
-                <ListBox ItemsSource="{Binding FocusedBrowser.Profiles}"
-                         SelectedItem="{Binding FocusedBrowser.SelectedProfile, Mode=TwoWay}"
-                         SelectionMode="Single"
-                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                         BorderThickness="0"
-                         Background="Transparent">
-                    <ListBox.ItemsPanel>
+                <ItemsControl ItemsSource="{Binding FocusedBrowser.Profiles}">
+                    <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Margin" Value="0,0,12,0"/>
-                            <Setter Property="Padding" Value="8"/>
-                            <Setter Property="Width" Value="96"/>
-                            <Setter Property="Height" Value="118"/>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Border Width="48" Height="48" CornerRadius="24" Background="#0D6EFD" Margin="0,0,0,8">
-                                    <TextBlock Text="👤" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
-                                </Border>
-                                <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap"/>
-                            </StackPanel>
+                            <Button Command="{Binding DataContext.SelectFocusedProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Width="96"
+                                    Height="118"
+                                    Margin="0,0,12,0"
+                                    Padding="8">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Background" Value="#E6F3FF"/>
+                                                <Setter Property="BorderBrush" Value="#1E90FF"/>
+                                                <Setter Property="BorderThickness" Value="2"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="48" Height="48" CornerRadius="24" Background="#0D6EFD" Margin="0,0,0,8">
+                                        <TextBlock Text="👤" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
                         </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <TextBlock Text="ⓘ This focused view will be remembered for next time."
                            Foreground="#5A6F95"

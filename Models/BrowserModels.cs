@@ -22,7 +22,14 @@ public class BrowserInfo : INotifyPropertyChanged
             if (ReferenceEquals(_selectedProfile, value))
                 return;
 
+            if (_selectedProfile != null)
+                _selectedProfile.IsSelected = false;
+
             _selectedProfile = value;
+
+            if (_selectedProfile != null)
+                _selectedProfile.IsSelected = true;
+
             OnPropertyChanged();
             OnPropertyChanged(nameof(FullDisplayName));
         }
@@ -50,12 +57,34 @@ public class BrowserInfo : INotifyPropertyChanged
     }
 }
 
-public class BrowserProfile
+public class BrowserProfile : INotifyPropertyChanged
 {
+    private bool _isSelected;
+
     public string Name { get; set; } = string.Empty;
     public string ProfilePath { get; set; } = string.Empty;
     public string Arguments { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+                return;
+
+            _isSelected = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 public class BrowserCache

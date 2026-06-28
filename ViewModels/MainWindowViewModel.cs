@@ -56,6 +56,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         SitesSettingsCommand = new RelayCommand(() => OpenSitesSettings?.Invoke());
         FocusBrowserCommand = new RelayCommand<BrowserInfo>(async browser => await FocusBrowserAsync(browser), browser => browser != null);
         ShowOtherBrowsersCommand = new RelayCommand(async () => await ShowOtherBrowsersAsync());
+        SelectFocusedProfileCommand = new RelayCommand<BrowserProfile>(SelectFocusedProfile, profile => profile != null);
     }
 
     public ObservableCollection<BrowserInfo> Browsers { get; }
@@ -161,6 +162,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public ICommand SitesSettingsCommand { get; }
     public ICommand FocusBrowserCommand { get; }
     public ICommand ShowOtherBrowsersCommand { get; }
+    public ICommand SelectFocusedProfileCommand { get; }
 
     public event Action? RequestClose;
     public event Action? OpenSettings;
@@ -302,6 +304,16 @@ public class MainWindowViewModel : INotifyPropertyChanged
         StopTimer();
         await _configurationService.SaveFocusedBrowserAsync(string.Empty);
         StatusMessage = "Select a browser or wait for auto-selection";
+    }
+
+    private void SelectFocusedProfile(BrowserProfile? profile)
+    {
+        if (FocusedBrowser == null || profile == null)
+            return;
+
+        FocusedBrowser.SelectedProfile = profile;
+        SelectedBrowser = FocusedBrowser;
+        StopTimer();
     }
 
     private async Task StartAutoSelectTimerAsync()
