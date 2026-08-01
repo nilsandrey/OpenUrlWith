@@ -19,7 +19,7 @@ public sealed class WindowingService : IWindowingService
 
     public void ConfigureMainWindow(Window window)
     {
-        ConfigureWindow(window, owner: null, widthDip: 760, heightDip: 640, isResizable: true, isModal: false);
+        ConfigureWindow(window, owner: null, widthDip: 760, heightDip: 560, isResizable: true, isModal: false);
 
         if (window.AppWindow.Presenter is OverlappedPresenter presenter)
             presenter.IsAlwaysOnTop = true;
