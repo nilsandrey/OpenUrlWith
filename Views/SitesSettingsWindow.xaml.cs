@@ -1,32 +1,74 @@
-using System;
-using System.Windows;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using OpenWithTool.Models;
+using OpenWithTool.Services;
 using OpenWithTool.ViewModels;
 
 namespace OpenWithTool.Views;
 
-public partial class SitesSettingsWindow : Window
+public sealed partial class SitesSettingsWindow : Window
 {
-    private readonly SitesSettingsWindowViewModel _viewModel;
+    private readonly IWindowingService _windowingService;
+    private bool _initialized;
 
-    public SitesSettingsWindow(SitesSettingsWindowViewModel viewModel)
+    public SitesSettingsWindowViewModel ViewModel { get; }
+
+    public SitesSettingsWindow(SitesSettingsWindowViewModel viewModel, IWindowingService windowingService)
     {
+        ViewModel = viewModel;
+        _windowingService = windowingService;
+
         InitializeComponent();
-        _viewModel = viewModel;
-        DataContext = _viewModel;
-        _viewModel.RequestClose += () => Close();
-        Loaded += SitesSettingsWindow_Loaded;
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        ViewModel.RequestClose += Close;
+        Root.Loaded += Root_Loaded;
     }
 
-    private async void SitesSettingsWindow_Loaded(object sender, RoutedEventArgs e)
+    public static string MatchTypeName(SiteMatchType matchType) => matchType switch
     {
-        try
+        SiteMatchType.ExactUrl => "Exact URL",
+        SiteMatchType.Domain => "Entire domain",
+        SiteMatchType.Path => "First path segment",
+        _ => matchType.ToString()
+    };
+
+    public static InfoBarSeverity StatusSeverity(bool hasError) => hasError
+        ? InfoBarSeverity.Error
+        : InfoBarSeverity.Informational;
+
+    public void ShowOwned(Window owner)
+    {
+        _windowingService.ConfigureDialog(this, owner, widthDip: 840, heightDip: 660, isResizable: true);
+        Activate();
+    }
+
+    private async void Root_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_initialized)
+            return;
+
+        _initialized = true;
+        await ViewModel.InitializeAsync();
+    }
+
+    private async void RemoveRule_Click(object sender, RoutedEventArgs e)
+    {
+        var rule = ViewModel.SelectedRule;
+        if (rule == null)
+            return;
+
+        var dialog = new ContentDialog
         {
-            await _viewModel.InitializeAsync();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, $"Error loading sites settings: {ex.Message}", "Error",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+            XamlRoot = Root.XamlRoot,
+            Title = "Remove remembered site?",
+            Content = $"Remove the rule for {rule.Pattern}? Links matching it will no longer open automatically.",
+            PrimaryButtonText = "Remove",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            await ViewModel.RemoveSelectedRuleCommand.ExecuteAsync(null);
     }
 }

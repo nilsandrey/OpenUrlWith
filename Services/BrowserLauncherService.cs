@@ -25,15 +25,8 @@ public class BrowserLauncherService : IBrowserLauncherService
                     CreateNoWindow = true
                 };
 
-                // Add profile-specific arguments if a profile is selected
-                if (browser.SelectedProfile != null && !string.IsNullOrEmpty(browser.SelectedProfile.Arguments))
-                {
-                    startInfo.Arguments = $"{browser.SelectedProfile.Arguments} \"{url}\"";
-                }
-                else
-                {
-                    startInfo.Arguments = $"\"{url}\"";
-                }
+                AddProfileArguments(startInfo, browser);
+                startInfo.ArgumentList.Add(url);
 
                 var process = Process.Start(startInfo);
                 return process != null;
@@ -45,5 +38,29 @@ public class BrowserLauncherService : IBrowserLauncherService
                 return false;
             }
         });
+    }
+
+    private static void AddProfileArguments(ProcessStartInfo startInfo, BrowserInfo browser)
+    {
+        var profile = browser.SelectedProfile;
+        if (profile == null || string.IsNullOrWhiteSpace(profile.ProfilePath))
+            return;
+
+        if (browser.Name.Equals("firefox", StringComparison.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add("-profile");
+            startInfo.ArgumentList.Add(profile.ProfilePath);
+            return;
+        }
+
+        if (browser.Name.Equals("chrome", StringComparison.OrdinalIgnoreCase)
+            || browser.Name.Equals("edge", StringComparison.OrdinalIgnoreCase)
+            || browser.Name.Equals("brave", StringComparison.OrdinalIgnoreCase)
+            || browser.Name.Equals("vivaldi", StringComparison.OrdinalIgnoreCase))
+        {
+            var profileDirectoryName = Path.GetFileName(profile.ProfilePath);
+            if (!string.IsNullOrWhiteSpace(profileDirectoryName))
+                startInfo.ArgumentList.Add($"--profile-directory={profileDirectoryName}");
+        }
     }
 }

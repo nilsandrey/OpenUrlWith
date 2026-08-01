@@ -1,5 +1,14 @@
 # Release Notes
 
+## 1.3.0 - 2026-07-31
+
+- Migrated the desktop interface from WPF to WinUI 3 and the Windows App SDK.
+- Added Fluent title bars, Mica surfaces, accessible controls, browser icons, and modern settings and remembered-site views.
+- Added packaged MSIX build and launch tooling for x64 and ARM64.
+- Added elevation-backed browser registration and complete cleanup during unregistration.
+- Preserved URL activation, remembered-site prelaunch, and non-interactive registration commands with clean process shutdown.
+- Fixed the Settings visibility preference and Save action behavior.
+
 ## 1.2.0 - 2026-06-28
 
 - Added a focused browser view that remembers a preferred browser and shows its profiles as horizontal icon buttons.

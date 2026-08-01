@@ -1,31 +1,47 @@
-# Build OpenWith Tool for Production
+param(
+    [switch]$Package
+)
 
-Write-Host "Building OpenWith Tool..." -ForegroundColor Green
+$ErrorActionPreference = 'Stop'
 
-# Clean previous builds
-if (Test-Path "publish") {
-    Remove-Item -Path "publish" -Recurse -Force
+dotnet publish "$PSScriptRoot\OpenWithTool.csproj" `
+    -c Release `
+    -r win-x64 `
+    --self-contained `
+    -p:Platform=x64 `
+    -o "$PSScriptRoot\publish\x64"
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
 }
 
-# Build the application
-dotnet publish OpenWithTool.csproj -c Release -r win-x64 --self-contained -o "publish"
+$outputDirectory = Join-Path $PSScriptRoot 'publish\x64'
+Write-Host "Release build: $outputDirectory" -ForegroundColor Green
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "Build completed successfully!" -ForegroundColor Green
-    Write-Host "Output directory: .\publish" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Installation Instructions:" -ForegroundColor Yellow
-    Write-Host "1. Copy files to C:\Program Files\OpenWithTool\" -ForegroundColor White
-    Write-Host "2. Run Resources\install-browser.ps1 as Administrator" -ForegroundColor White
-    Write-Host "3. Set as default browser in Windows Settings > Apps > Default apps" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Quick install commands (run as Administrator):" -ForegroundColor Yellow
-    Write-Host "New-Item -ItemType Directory -Path 'C:\Program Files\OpenWithTool' -Force" -ForegroundColor Gray
-    Write-Host "Copy-Item -Path 'publish\*' -Destination 'C:\Program Files\OpenWithTool\' -Recurse -Force" -ForegroundColor Gray
-    Write-Host "& 'Resources\install-browser.ps1'" -ForegroundColor Gray
+if (-not $Package) {
+    Write-Host 'Pass -Package to create a signed development MSIX.' -ForegroundColor DarkGray
+    exit 0
+}
+
+$certificatePath = Join-Path $PSScriptRoot 'OpenWithTool_cert.pfx'
+$packagePath = Join-Path $PSScriptRoot 'OpenWithTool_1.3.0.0_x64.msix'
+if (Test-Path -LiteralPath $packagePath) {
+    Remove-Item -LiteralPath $packagePath -Force
+}
+
+$packageArguments = @(
+    'package',
+    $outputDirectory,
+    '--manifest', "$PSScriptRoot\Package.appxmanifest",
+    '--executable', 'OpenWithTool.exe',
+    '--output', $packagePath
+)
+
+if (Test-Path -LiteralPath $certificatePath) {
+    $packageArguments += @('--cert', $certificatePath)
 } else {
-    Write-Host "Build failed!" -ForegroundColor Red
+    $packageArguments += '--generate-cert'
 }
 
-Read-Host "Press Enter to continue"
+& winapp @packageArguments
+
+exit $LASTEXITCODE

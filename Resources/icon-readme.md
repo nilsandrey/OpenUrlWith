@@ -1,10 +1,10 @@
 # App Icon
 
-This directory should contain the application icon file `app.ico`. 
+The WinUI package icon assets live in `Assets/`. `Assets/AppIcon.ico` is used by the executable, title bars, and `AppWindow`; the PNG variants are referenced by `Package.appxmanifest` for package and Start menu presentation.
 
-For a complete implementation, you would need to:
-1. Create or obtain an icon file (32x32, 48x48, etc. sizes)
-2. Save it as `app.ico` in the project root
-3. The project file already references it in the ApplicationIcon property
+The checked-in files are the WinUI template defaults. When replacing them:
 
-For now, the application will use the default Windows executable icon.
+1. Keep every filename referenced by `OpenWithTool.csproj` and `Package.appxmanifest`.
+2. Provide the matching scale and target-size variants, including transparent unplated icons.
+3. Preserve the ICO file with at least 32, 48, and 256 pixel sizes.
+4. Build an MSIX and verify the title bar, taskbar, Start menu, and Default apps presentation.
