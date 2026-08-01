@@ -27,21 +27,6 @@
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
-            <TitleBar.RightHeader>
-                <Button
-                    Width="32"
-                    Height="32"
-                    Padding="0"
-                    AutomationProperties.AutomationId="SettingsButton"
-                    AutomationProperties.Name="Settings"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Command="{x:Bind ViewModel.OpenSettingsCommand}"
-                    ToolTipService.ToolTip="Settings"
-                    Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowSettingsButton), Mode=OneWay}">
-                    <FontIcon FontSize="16" Glyph="&#xE713;" />
-                </Button>
-            </TitleBar.RightHeader>
         </TitleBar>
 
         <Grid
@@ -333,6 +318,17 @@
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button
+                        Width="32"
+                        Height="32"
+                        Padding="0"
+                        AutomationProperties.AutomationId="SettingsButton"
+                        AutomationProperties.Name="Settings"
+                        Command="{x:Bind ViewModel.OpenSettingsCommand}"
+                        ToolTipService.ToolTip="Settings"
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowSettingsButton), Mode=OneWay}">
+                        <FontIcon FontSize="16" Glyph="&#xE713;" />
+                    </Button>
                     <Button
                         Width="96"
                         AutomationProperties.AutomationId="CancelButton"

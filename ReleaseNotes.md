@@ -8,7 +8,7 @@
 - Added elevation-backed browser registration and complete cleanup during unregistration.
 - Preserved URL activation, remembered-site prelaunch, and non-interactive registration commands with clean process shutdown.
 - Fixed the Settings visibility preference and Save action behavior.
-- Reorganized the main window into compact browser, site-rule, status, and action rows with title-bar Settings and heading-level Refresh commands.
+- Reorganized the main window into compact browser, site-rule, status, and action rows with footer Settings and heading-level Refresh commands.
 
 ## 1.2.0 - 2026-06-28
 
