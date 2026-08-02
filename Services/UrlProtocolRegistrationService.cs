@@ -12,6 +12,8 @@ public interface IUrlProtocolRegistrationService
     bool RegisterAsDefaultBrowser();
     bool UnregisterAsDefaultBrowser();
     bool IsRunningAsAdministrator();
+    Task<bool> RegisterElevatedAsync();
+    Task<bool> UnregisterElevatedAsync();
 }
 
 public class UrlProtocolRegistrationService : IUrlProtocolRegistrationService
@@ -67,8 +69,16 @@ public class UrlProtocolRegistrationService : IUrlProtocolRegistrationService
             if (!IsRunningAsAdministrator())
                 return false;
 
-            // Remove browser registration
             Registry.LocalMachine.DeleteSubKeyTree($@"SOFTWARE\Clients\StartMenuInternet\{AppName}", false);
+            using (var registeredApplicationsKey = Registry.LocalMachine.OpenSubKey(
+                       @"SOFTWARE\RegisteredApplications",
+                       writable: true))
+            {
+                registeredApplicationsKey?.DeleteValue(AppName, throwOnMissingValue: false);
+            }
+
+            Registry.ClassesRoot.DeleteSubKeyTree($"{AppName}URL", throwOnMissingSubKey: false);
+            Registry.ClassesRoot.DeleteSubKeyTree($"{AppName}HTML", throwOnMissingSubKey: false);
             
             return true;
         }
@@ -86,6 +96,50 @@ public class UrlProtocolRegistrationService : IUrlProtocolRegistrationService
             var identity = WindowsIdentity.GetCurrent();
             var principal = new WindowsPrincipal(identity);
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> RegisterElevatedAsync()
+    {
+        if (IsRunningAsAdministrator())
+            return RegisterAsDefaultBrowser();
+
+        return await RunElevatedCommandAsync("--register") && IsRegisteredAsDefaultBrowser();
+    }
+
+    public async Task<bool> UnregisterElevatedAsync()
+    {
+        if (IsRunningAsAdministrator())
+            return UnregisterAsDefaultBrowser();
+
+        return await RunElevatedCommandAsync("--unregister") && !IsRegisteredAsDefaultBrowser();
+    }
+
+    private static async Task<bool> RunElevatedCommandAsync(string command)
+    {
+        try
+        {
+            var executablePath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(executablePath))
+                return false;
+
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = executablePath,
+                Arguments = command,
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+
+            if (process == null)
+                return false;
+
+            await process.WaitForExitAsync();
+            return process.ExitCode == 0;
         }
         catch
         {

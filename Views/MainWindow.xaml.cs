@@ -1,60 +1,92 @@
-using System;
-using System.Windows;
-using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
+using OpenWithTool.Models;
+using OpenWithTool.Services;
 using OpenWithTool.ViewModels;
+using Windows.System;
 
 namespace OpenWithTool.Views;
 
-public partial class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
-    private readonly MainWindowViewModel _viewModel;
     private readonly IServiceProvider _serviceProvider;
+    private SettingsWindow? _settingsWindow;
+    private SitesSettingsWindow? _sitesSettingsWindow;
 
-    public MainWindow(MainWindowViewModel viewModel, IServiceProvider serviceProvider)
+    public MainWindowViewModel ViewModel { get; }
+
+    public MainWindow(
+        MainWindowViewModel viewModel,
+        IServiceProvider serviceProvider,
+        IWindowingService windowingService)
     {
-        InitializeComponent();
-        _viewModel = viewModel;
+        ViewModel = viewModel;
         _serviceProvider = serviceProvider;
-        DataContext = _viewModel;
 
-        _viewModel.RequestClose += () => Close();
-        _viewModel.OpenSettings += OpenSettingsWindow;
-        _viewModel.OpenSitesSettings += OpenSitesSettingsWindow;
-        _viewModel.RequestListFocus += () => FocusBrowserList();
-        
-        // Ensure the browser list gets focus when the window is loaded
-        Loaded += (s, e) => FocusBrowserList();
+        InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        windowingService.ConfigureMainWindow(this);
+
+        ViewModel.RequestClose += Close;
+        ViewModel.OpenSettingsRequested += OpenSettingsWindow;
+        ViewModel.OpenSitesSettingsRequested += OpenSitesSettingsWindow;
+        ViewModel.RequestListFocus += FocusBrowserList;
+        Root.Loaded += (_, _) => FocusBrowserList();
     }
+
+    public static Visibility BoolToVisibility(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility InvertBoolToVisibility(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
+    public static BitmapImage? IconFromPath(string path) => string.IsNullOrWhiteSpace(path)
+        ? null
+        : new BitmapImage(new Uri(path));
+    public static string BrowserProfileAutomationId(string browserName) => $"BrowserProfile_{browserName}";
+    public static string FocusButtonAutomationId(string browserName) => $"FocusBrowser_{browserName}";
 
     private void FocusBrowserList()
     {
-        // Set focus to the browser list for immediate keyboard navigation
-        var listBox = FindName("BrowserListBox") as System.Windows.Controls.ListBox;
-        listBox?.Focus();
+        if (ViewModel.IsBrowserFocused)
+            FocusedProfileGrid.Focus(FocusState.Programmatic);
+        else
+            BrowserList.Focus(FocusState.Programmatic);
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Root_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        _viewModel.OnUserInteraction();
-    }
-
-    private void Window_MouseMove(object sender, MouseEventArgs e)
-    {
-        _viewModel.OnUserInteraction();
-    }
-
-    private void OpenSitesSettingsWindow()
-    {
-        try
+        ViewModel.OnUserInteraction();
+        if (e.Key == VirtualKey.Escape)
         {
-            var sitesSettingsWindow = _serviceProvider.GetRequiredService<SitesSettingsWindow>();
-            sitesSettingsWindow.Owner = this;
-            sitesSettingsWindow.ShowDialog();
+            ViewModel.CancelCommand.Execute(null);
+            e.Handled = true;
         }
-        catch (Exception ex)
+    }
+
+    private void Root_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        ViewModel.OnUserInteraction();
+    }
+
+    private void BrowserList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        if (ViewModel.LaunchCommand.CanExecute(null))
+            ViewModel.LaunchCommand.Execute(null);
+    }
+
+    private void FocusBrowser_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: BrowserInfo browser })
+            ViewModel.FocusBrowserCommand.Execute(browser);
+    }
+
+    private void FocusedProfileGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (FocusedProfileGrid.SelectedItem is BrowserProfile profile
+            && !ReferenceEquals(profile, ViewModel.FocusedProfile))
         {
-            MessageBox.Show($"Error opening sites settings: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ViewModel.SelectFocusedProfileCommand.Execute(profile);
         }
     }
 
@@ -62,14 +94,63 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (_settingsWindow != null)
+            {
+                _settingsWindow.Activate();
+                return;
+            }
+
             var settingsWindow = _serviceProvider.GetRequiredService<SettingsWindow>();
-            settingsWindow.Owner = this;
-            settingsWindow.ShowDialog();
+            _settingsWindow = settingsWindow;
+            settingsWindow.Closed += async (_, _) =>
+            {
+                _settingsWindow = null;
+                await ViewModel.ReloadDisplaySettingsAsync();
+                Activate();
+            };
+            settingsWindow.ShowOwned(this);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening settings: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            _ = ShowErrorAsync("Settings could not be opened", ex.Message);
         }
+    }
+
+    private void OpenSitesSettingsWindow()
+    {
+        try
+        {
+            if (_sitesSettingsWindow != null)
+            {
+                _sitesSettingsWindow.Activate();
+                return;
+            }
+
+            var sitesSettingsWindow = _serviceProvider.GetRequiredService<SitesSettingsWindow>();
+            _sitesSettingsWindow = sitesSettingsWindow;
+            sitesSettingsWindow.Closed += (_, _) =>
+            {
+                _sitesSettingsWindow = null;
+                Activate();
+            };
+            sitesSettingsWindow.ShowOwned(this);
+        }
+        catch (Exception ex)
+        {
+            _ = ShowErrorAsync("Remembered sites could not be opened", ex.Message);
+        }
+    }
+
+    private async Task ShowErrorAsync(string title, string message)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            Title = title,
+            Content = message,
+            CloseButtonText = "Close",
+            DefaultButton = ContentDialogButton.Close
+        };
+        await dialog.ShowAsync();
     }
 }

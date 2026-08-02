@@ -1,26 +1,49 @@
-using System;
-using System.Windows;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using OpenWithTool.Services;
 using OpenWithTool.ViewModels;
 
 namespace OpenWithTool.Views;
 
-public partial class SettingsWindow : Window
+public sealed partial class SettingsWindow : Window
 {
-    private readonly SettingsWindowViewModel _viewModel;
+    private readonly IWindowingService _windowingService;
+    private bool _initialized;
 
-    public SettingsWindow(SettingsWindowViewModel viewModel)
+    public SettingsWindowViewModel ViewModel { get; }
+
+    public SettingsWindow(SettingsWindowViewModel viewModel, IWindowingService windowingService)
     {
-        InitializeComponent();
-        _viewModel = viewModel;
-        DataContext = _viewModel;
+        ViewModel = viewModel;
+        _windowingService = windowingService;
 
-        _viewModel.RequestClose += () => Close();
-        
-        Loaded += SettingsWindow_Loaded;
+        InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        ViewModel.RequestClose += Close;
+        Root.Loaded += Root_Loaded;
     }
 
-    private async void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
+    public static string RegistrationTitle(bool isRegistered) => isRegistered ? "Registered" : "Not registered";
+    public static string RegistrationMessage(bool isRegistered) => isRegistered
+        ? "OpenWith Tool is registered as a browser."
+        : "OpenWith Tool is not registered as a browser.";
+    public static InfoBarSeverity RegistrationSeverity(bool isRegistered) => isRegistered
+        ? InfoBarSeverity.Success
+        : InfoBarSeverity.Warning;
+
+    public void ShowOwned(Window owner)
     {
-        await _viewModel.InitializeAsync();
+        _windowingService.ConfigureDialog(this, owner, widthDip: 680, heightDip: 760, isResizable: false);
+        Activate();
+    }
+
+    private async void Root_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_initialized)
+            return;
+
+        _initialized = true;
+        await ViewModel.InitializeAsync();
     }
 }

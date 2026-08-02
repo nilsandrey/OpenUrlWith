@@ -1,399 +1,352 @@
-<Window x:Class="OpenWithTool.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Title="Open With..."
-        Height="560"
-        Width="680"
-        WindowStartupLocation="CenterScreen"
-        ResizeMode="CanResizeWithGrip"
-        ShowInTaskbar="False"
-        Topmost="True"
-        FocusManager.FocusedElement="{Binding ElementName=BrowserListBox}"
-        KeyDown="Window_KeyDown"
-        MouseMove="Window_MouseMove"
-        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="OpenWithTool.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:OpenWithTool.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:OpenWithTool.Models"
+    Title="OpenWith Tool"
+    mc:Ignorable="d">
 
-    <Window.Resources>
-        <Style x:Key="BrowserItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F8FF"/>
-                                <Setter Property="BorderBrush" Value="#4169E1"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E6F3FF"/>
-                                <Setter Property="BorderBrush" Value="#1E90FF"/>
-                                <Setter Property="BorderThickness" Value="2"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
 
-        <Style x:Key="ProfileRadioListBoxStyle" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="MinWidth" Value="120"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled"/>
-            <Setter Property="ItemsPanel">
-                <Setter.Value>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="ItemContainerStyle">
-                <Setter.Value>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Margin" Value="0,0,8,4"/>
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <ContentPresenter/>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Profiles.Count}" Value="1">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="ProfileRadioButtonStyle" TargetType="RadioButton">
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="#212529"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Focusable" Value="False"/>
-        </Style>
-    </Window.Resources>
-
-    <Grid Margin="16">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock Grid.Row="0"
-                   Text="Select a browser to open the link:"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,12"/>
+        <TitleBar
+            x:Name="AppTitleBar"
+            Subtitle="Browser selector"
+            Title="OpenWith Tool">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
 
-        <!-- URL Display -->
-        <Border Grid.Row="1"
-                Background="#F8F9FA"
-                BorderBrush="#E9ECEF"
+        <Grid
+            x:Name="Root"
+            Grid.Row="1"
+            Margin="24,16,24,20"
+            KeyDown="Root_KeyDown"
+            PointerMoved="Root_PointerMoved">
+            <Grid.Resources>
+                <Style x:Key="BrowserListViewItemStyle" TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="MinHeight" Value="68" />
+                    <Setter Property="Margin" Value="0,0,0,4" />
+                    <Setter Property="Padding" Value="8,4" />
+                    <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+                </Style>
+                <Style x:Key="ProfileGridViewItemStyle" TargetType="GridViewItem">
+                    <Setter Property="Width" Value="128" />
+                    <Setter Property="Height" Value="108" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                    <Setter Property="Margin" Value="0,0,8,8" />
+                </Style>
+            </Grid.Resources>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,12" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    Text="Choose where to open this link" />
+                <Button
+                    Grid.Column="1"
+                    Padding="8,4"
+                    AutomationProperties.AutomationId="RefreshButton"
+                    AutomationProperties.Name="Refresh browser list"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{x:Bind ViewModel.RefreshCommand}"
+                    ToolTipService.ToolTip="Refresh browser list">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="16" Glyph="&#xE72C;" />
+                        <TextBlock Text="Refresh" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,12"
+                Padding="12,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
-                CornerRadius="4"
-                Padding="8"
-                Margin="0,0,0,12">
-            <TextBlock Text="{Binding Url}"
-                       TextWrapping="Wrap"
-                       FontFamily="Consolas"
-                       FontSize="11"
-                       Foreground="#495057"/>
-        </Border>
+                CornerRadius="{ThemeResource ControlCornerRadius}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon
+                        FontSize="16"
+                        Glyph="&#xE71B;"
+                        VerticalAlignment="Top" />
+                    <TextBlock
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="UrlText"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        Text="{x:Bind ViewModel.Url, Mode=OneWay}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="WrapWholeWords" />
+                </Grid>
+            </Border>
 
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="260"/>
-            </Grid.ColumnDefinitions>
-            <CheckBox Grid.Column="1"
-                      Content="Remember my selection for this site"
-                      IsChecked="{Binding RememberSelection}"
-                      VerticalAlignment="Center"
-                      Margin="0,0,8,0"/>
-            <ComboBox Grid.Column="2"
-                      ItemsSource="{Binding MatchOptions}"
-                      SelectedItem="{Binding SelectedMatchOption}"
-                      DisplayMemberPath="DisplayText"
-                      IsEnabled="{Binding RememberSelection}"/>
-        </Grid>
+            <InfoBar
+                Grid.Row="2"
+                Margin="0,0,0,8"
+                AutomationProperties.AutomationId="AutoSelectInfoBar"
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.IsTimerActive, Mode=OneWay}"
+                Message="{x:Bind ViewModel.TimerMessage, Mode=OneWay}"
+                Severity="Informational"
+                Title="Auto-select active" />
 
-        <!-- Timer Display -->
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    Margin="0,0,0,8">
-            <StackPanel.Style>
-                <Style TargetType="StackPanel">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsTimerActive}" Value="True">
-                            <Setter Property="Visibility" Value="Visible"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </StackPanel.Style>
-            <TextBlock Text="Auto-selecting in " FontSize="12" Foreground="#6C757D"/>
-            <TextBlock Text="{Binding TimeRemaining}" FontSize="12" FontWeight="Bold" Foreground="#DC3545"/>
-            <TextBlock Text=" seconds..." FontSize="12" Foreground="#6C757D"/>
-        </StackPanel>
+            <ListView
+                x:Name="BrowserList"
+                Grid.Row="3"
+                AutomationProperties.AutomationId="BrowserList"
+                DoubleTapped="BrowserList_DoubleTapped"
+                ItemContainerStyle="{StaticResource BrowserListViewItemStyle}"
+                ItemsSource="{x:Bind ViewModel.Browsers, Mode=OneWay}"
+                SelectedItem="{x:Bind ViewModel.SelectedBrowser, Mode=TwoWay}"
+                SelectionMode="Single"
+                Visibility="{x:Bind local:MainWindow.InvertBoolToVisibility(ViewModel.IsBrowserFocused), Mode=OneWay}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:BrowserInfo">
+                        <Grid MinHeight="56" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="192" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-        <!-- Browser List -->
-        <ListBox Grid.Row="4"
-                 x:Name="BrowserListBox"
-                 ItemsSource="{Binding Browsers}"
-                 SelectedItem="{Binding SelectedBrowser}"
-                 ItemContainerStyle="{StaticResource BrowserItemStyle}"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 SelectionMode="Single">
-            <ListBox.Style>
-                <Style TargetType="ListBox">
-                    <Setter Property="Visibility" Value="Visible"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsBrowserFocused}" Value="True">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ListBox.Style>
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                            <Border
+                                Width="40"
+                                Height="40"
+                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                CornerRadius="{ThemeResource ControlCornerRadius}">
+                                <Grid>
+                                    <FontIcon FontSize="20" Glyph="&#xE774;" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{x:Bind local:MainWindow.IconFromPath(IconCachePath), Mode=OneWay}"
+                                        Stretch="Uniform" />
+                                </Grid>
+                            </Border>
 
-                        <!-- Browser Icon -->
-                        <Border Grid.Column="0"
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock
+                                    Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                    Text="{x:Bind DisplayName, Mode=OneWay}" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ExecutablePath, Mode=OneWay}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <ComboBox
+                                Grid.Column="2"
+                                AutomationProperties.AutomationId="{x:Bind local:MainWindow.BrowserProfileAutomationId(Name), Mode=OneWay}"
+                                AutomationProperties.Name="Browser profile"
+                                DisplayMemberPath="Name"
+                                ItemsSource="{x:Bind Profiles, Mode=OneWay}"
+                                SelectedItem="{x:Bind SelectedProfile, Mode=TwoWay}"
+                                ToolTipService.ToolTip="Choose a browser profile"
+                                VerticalAlignment="Center" />
+
+                            <Button
+                                Grid.Column="3"
+                                Width="40"
+                                Height="40"
+                                AutomationProperties.AutomationId="{x:Bind local:MainWindow.FocusButtonAutomationId(Name), Mode=OneWay}"
+                                AutomationProperties.Name="Focus this browser"
+                                Click="FocusBrowser_Click"
+                                Tag="{x:Bind Mode=OneWay}"
+                                ToolTipService.ToolTip="Focus this browser">
+                                <FontIcon FontSize="16" Glyph="&#xE840;" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <Grid
+                Grid.Row="3"
+                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsBrowserFocused), Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Margin="0,0,0,16" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="48"
+                        Height="48"
+                        Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="{ThemeResource ControlCornerRadius}">
+                        <Grid>
+                            <FontIcon FontSize="22" Glyph="&#xE774;" />
+                            <Image
                                 Width="32"
                                 Height="32"
-                                Background="#F8F9FA"
-                                BorderBrush="#DEE2E6"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Margin="0,0,12,0">
-                            <Image Source="{Binding IconPath}"
-                                   Width="24"
-                                   Height="24"
-                                   Stretch="Uniform"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </Border>
-
-                        <!-- Browser Info -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding DisplayName}"
-                                       FontWeight="SemiBold"
-                                       FontSize="14"/>
-                            <TextBlock Text="{Binding SelectedProfile.Name}"
-                                       FontSize="12"
-                                       Foreground="#6C757D">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedProfile}" Value="{x:Null}">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-
-                        <!-- Profile Selector -->
-                        <ListBox Grid.Column="2"
-                                 ItemsSource="{Binding Profiles}"
-                                 SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
-                                 SelectionMode="Single"
-                                 Style="{StaticResource ProfileRadioListBoxStyle}"
-                                 VerticalAlignment="Center"
-                                 Margin="8,0,0,0">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <RadioButton Content="{Binding Name}"
-                                                 IsChecked="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Mode=TwoWay}"
-                                                 Style="{StaticResource ProfileRadioButtonStyle}"/>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <Button Grid.Column="3"
-                                Command="{Binding DataContext.FocusBrowserCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                CommandParameter="{Binding}"
-                                ToolTip="Focus on this browser"
-                                Width="36"
-                                Height="32"
-                                Margin="8,0,0,0"
-                                VerticalAlignment="Center"
-                                Content="↪"
-                                FontSize="18"/>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-
-
-
-        <!-- Focused Browser Profile Picker -->
-        <Border Grid.Row="4"
-                Background="White"
-                BorderBrush="#E0E0E0"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="14">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsBrowserFocused}" Value="True">
-                            <Setter Property="Visibility" Value="Visible"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <StackPanel>
-                <DockPanel Margin="0,0,0,16">
-                    <Button Content="Other browser"
-                            Command="{Binding ShowOtherBrowsersCommand}"
-                            DockPanel.Dock="Right"
-                            Width="110"
-                            Height="32"/>
-                    <StackPanel Orientation="Horizontal">
-                        <Border Width="40" Height="40" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="1" CornerRadius="4" Margin="0,0,12,0">
-                            <Image Source="{Binding FocusedBrowser.IconPath}" Width="30" Height="30" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </Border>
-                        <TextBlock Text="{Binding FocusedBrowser.DisplayName}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                Source="{x:Bind local:MainWindow.IconFromPath(ViewModel.FocusedBrowserIconPath), Mode=OneWay}"
+                                Stretch="Uniform" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock
+                            Style="{ThemeResource SubtitleTextBlockStyle}"
+                            Text="{x:Bind ViewModel.FocusedBrowserDisplayName, Mode=OneWay}" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="Choose a profile" />
                     </StackPanel>
-                </DockPanel>
+                    <Button
+                        Grid.Column="2"
+                        AutomationProperties.AutomationId="OtherBrowsersButton"
+                        AutomationProperties.Name="Show other browsers"
+                        Command="{x:Bind ViewModel.ShowOtherBrowsersCommand}"
+                        VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE72B;" />
+                            <TextBlock Text="Other browsers" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
-                <TextBlock Text="Choose a profile:" Margin="0,0,0,8"/>
-                <ItemsControl ItemsSource="{Binding FocusedBrowser.Profiles}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button Command="{Binding DataContext.SelectFocusedProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
-                                    Width="96"
-                                    Height="118"
-                                    Margin="0,0,12,0"
-                                    Padding="8">
-                                <Button.Style>
-                                    <Style TargetType="Button">
-                                        <Setter Property="Background" Value="White"/>
-                                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                <Setter Property="Background" Value="#E6F3FF"/>
-                                                <Setter Property="BorderBrush" Value="#1E90FF"/>
-                                                <Setter Property="BorderThickness" Value="2"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Border Width="48" Height="48" CornerRadius="24" Background="#0D6EFD" Margin="0,0,0,8">
-                                        <TextBlock Text="👤" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
-                                    </Border>
-                                    <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap"/>
+                <GridView
+                    x:Name="FocusedProfileGrid"
+                    Grid.Row="2"
+                    AutomationProperties.AutomationId="FocusedProfileGrid"
+                    ItemContainerStyle="{StaticResource ProfileGridViewItemStyle}"
+                    ItemsSource="{x:Bind ViewModel.FocusedProfiles, Mode=OneWay}"
+                    SelectedItem="{x:Bind ViewModel.FocusedProfile, Mode=OneWay}"
+                    SelectionChanged="FocusedProfileGrid_SelectionChanged"
+                    SelectionMode="Single">
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="models:BrowserProfile">
+                            <Grid Padding="10">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                                    <FontIcon FontSize="28" Glyph="&#xE77B;" />
+                                    <TextBlock
+                                        MaxWidth="100"
+                                        Text="{x:Bind Name, Mode=OneWay}"
+                                        TextAlignment="Center"
+                                        TextTrimming="CharacterEllipsis"
+                                        TextWrapping="WrapWholeWords" />
                                 </StackPanel>
-                            </Button>
+                            </Grid>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </Grid>
 
-                <TextBlock Text="ⓘ This focused view will be remembered for next time."
-                           Foreground="#5A6F95"
-                           FontSize="12"
-                           Margin="0,14,0,0"/>
-            </StackPanel>
-        </Border>
+            <Grid Grid.Row="4" Margin="0,12,0,8" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <CheckBox
+                    AutomationProperties.AutomationId="RememberSelectionCheckBox"
+                    Content="Remember for this site"
+                    IsChecked="{x:Bind ViewModel.RememberSelection, Mode=TwoWay}"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    AutomationProperties.AutomationId="SiteMatchComboBox"
+                    DisplayMemberPath="DisplayText"
+                    IsEnabled="{x:Bind ViewModel.RememberSelection, Mode=OneWay}"
+                    ItemsSource="{x:Bind ViewModel.MatchOptions, Mode=OneWay}"
+                    SelectedItem="{x:Bind ViewModel.SelectedMatchOption, Mode=TwoWay}" />
+                <Button
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="SitesButton"
+                    AutomationProperties.Name="Remembered sites"
+                    Command="{x:Bind ViewModel.OpenSitesSettingsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="16" Glyph="&#xE8EF;" />
+                        <TextBlock Text="Sites" />
+                    </StackPanel>
+                </Button>
+            </Grid>
 
-        <!-- Status Bar -->
-        <TextBlock Grid.Row="5"
-                   Text="{Binding StatusMessage}"
-                   FontSize="11"
-                   Foreground="#6C757D"
-                   Margin="0,8,0,8"
-                   TextTrimming="CharacterEllipsis"/>
-
-        <!-- Buttons -->
-        <DockPanel Grid.Row="6">
-            <Button Content="Sites settings"
-                    Command="{Binding SitesSettingsCommand}"
-                    Width="100"
-                    Height="32"
-                    DockPanel.Dock="Left"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Refresh"
-                    Command="{Binding RefreshCommand}"
-                    Width="80"
-                    Height="32"
-                    Margin="0,0,8,0"
-                    Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"/>
-
-            <Button Content="Settings"
-                    Command="{Binding SettingsCommand}"
-                    Width="80"
-                    Height="32"
-                    Margin="0,0,8,0"
-                    Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"/>
-
-            <Button Content="Cancel"
-                    Command="{Binding CancelCommand}"
-                    Width="80"
-                    Height="32"
-                    Margin="0,0,8,0"
-                    IsCancel="True"/>
-
-            <Button Content="Open"
-                    Command="{Binding LaunchCommand}"
-                    Width="80"
-                    Height="32"
-                    IsDefault="True"
-                    Style="{DynamicResource {x:Static ToolBar.ButtonStyleKey}}"
-                    Background="#0D6EFD"
-                    Foreground="White"
-                    BorderBrush="#0D6EFD"/>
-            </StackPanel>
-        </DockPanel>
+            <Grid Grid.Row="5" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    AutomationProperties.AutomationId="StatusText"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button
+                        Width="32"
+                        Height="32"
+                        Padding="0"
+                        AutomationProperties.AutomationId="SettingsButton"
+                        AutomationProperties.Name="Settings"
+                        Command="{x:Bind ViewModel.OpenSettingsCommand}"
+                        ToolTipService.ToolTip="Settings"
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowSettingsButton), Mode=OneWay}">
+                        <FontIcon FontSize="16" Glyph="&#xE713;" />
+                    </Button>
+                    <Button
+                        Width="96"
+                        AutomationProperties.AutomationId="CancelButton"
+                        Command="{x:Bind ViewModel.CancelCommand}"
+                        Content="Cancel" />
+                    <Button
+                        Width="104"
+                        AutomationProperties.AutomationId="OpenButton"
+                        AutomationProperties.Name="Open link"
+                        Command="{x:Bind ViewModel.LaunchCommand}"
+                        Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE8A7;" />
+                            <TextBlock Text="Open" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

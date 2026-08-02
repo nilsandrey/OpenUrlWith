@@ -1,131 +1,88 @@
 # OpenWith Tool
 
-A Windows desktop application that allows you to select which browser to open web links with. When set as the default browser, it presents a dialog with a list of installed browsers and their profiles, allowing you to choose how to open each link.
+OpenWith Tool is a Windows 10/11 desktop application for choosing which installed browser and browser profile opens a web link. It is built with WinUI 3 and the Windows App SDK.
 
 ## Features
 
-- **Dynamic Browser Detection**: Automatically detects installed browsers (Chrome, Firefox, Edge, Opera, Brave, Vivaldi, and others)
-- **Profile Support**: Supports browser profiles for Chrome-based browsers and Firefox
-- **Smart Caching**: Caches browser list for quick access (refreshes daily or manually)
-- **Auto-Selection**: Automatically selects the last used browser after a configurable timeout (default: 3 seconds)
-- **User Interaction Detection**: Stops auto-selection when user interacts with the dialog
-- **Persistent Settings**: Remembers your last selection for quick access
+- Detects Chrome, Firefox, Edge, Opera, Brave, Vivaldi, and registered Windows browsers.
+- Detects Chromium and Firefox profiles and shows the installed browser icon.
+- Remembers the last browser and profile, with an optional auto-selection countdown.
+- Saves exact URL, domain, or path rules for links that should open automatically.
+- Provides a focused profile picker for a preferred browser.
+- Stores settings and browser cache per user under `%APPDATA%\OpenWithTool`.
 
-## Installation
+## Requirements
 
-1. **Build the Application**:
-   ```bash
-   dotnet publish -c Release -r win-x64 --self-contained
-   ```
-
-2. **Copy to Program Files** (as Administrator):
-   ```powershell
-   Copy-Item -Recurse "bin\Release\net8.0-windows\win-x64\publish\*" "C:\Program Files\OpenWithTool\"
-   ```
-
-3. **Register as Browser** (as Administrator):
-   ```powershell
-   # Using PowerShell script
-   .\Resources\install-browser.ps1
-   
-   # Or using registry file
-   # Right-click Resources\register-browser.reg and select "Merge"
-   ```
-
-4. **Set as Default Browser**:
-   - Open Windows Settings
-   - Go to Apps > Default apps
-   - Click on "Web browser"
-   - Select "OpenWith Tool - Browser Selector"
-
-## Usage
-
-Once installed and set as the default browser:
-
-1. Click any web link
-2. The OpenWith Tool dialog appears
-3. Select your preferred browser and profile
-4. The link opens in the selected browser
-5. Your choice is remembered for next time
-
-### Auto-Selection
-
-- The tool will automatically select your last choice after 3 seconds (configurable)
-- Move the mouse or press any key to stop the auto-selection timer
-- Use the Settings button to configure the timeout duration
-
-### Manual Controls
-
-- **Refresh**: Reload the browser list
-- **Settings**: Configure preferences (timeout, etc.)
-- **Cancel**: Close without opening the link
-- **Launch**: Open the link in the selected browser
-
-## Configuration
-
-Settings are stored in: `%APPDATA%\OpenWithTool\settings.json`
-
-Available settings:
-- `AutoSelectTimeoutSeconds`: Auto-selection timeout (default: 3)
-- `CacheDurationHours`: Browser cache duration (default: 24)
-- `EnableAutoSelect`: Enable/disable auto-selection (default: true)
-- `LastSelectedBrowser`: Last selected browser name
-- `LastSelectedProfile`: Last selected profile name
-
-## Uninstallation
-
-1. **Change Default Browser** (optional):
-   - Set another browser as default in Windows Settings
-
-2. **Unregister from System** (as Administrator):
-   ```powershell
-   # Using PowerShell script
-   .\Resources\install-browser.ps1 -Uninstall
-   
-   # Or using registry file
-   # Right-click Resources\unregister-browser.reg and select "Merge"
-   ```
-
-3. **Remove Files**:
-   ```powershell
-   Remove-Item -Recurse "C:\Program Files\OpenWithTool"
-   Remove-Item -Recurse "$env:APPDATA\OpenWithTool"
-   ```
-
-## Supported Browsers
-
-The tool automatically detects:
-- **Google Chrome** (with profiles)
-- **Mozilla Firefox** (with profiles)
-- **Microsoft Edge** (with profiles)
-- **Opera**
-- **Brave Browser** (with profiles)
-- **Vivaldi** (with profiles)
-- Any other browser registered in Windows
+- Windows 10 version 1809 or later, or Windows 11.
+- .NET 10 SDK for development.
+- Developer Mode, the WinApp CLI, and WinUI templates for local deployment.
 
 ## Development
 
-### Requirements
-- .NET 8.0 or later
-- Windows 10/11
+Restore and build the x64 app:
 
-### Building
-```bash
-git clone <repository-url>
-cd openwith-tool
+```powershell
 dotnet restore
-dotnet build
+dotnet build OpenWithTool.csproj -p:Platform=x64
 ```
 
-### Running in Development
-```bash
-dotnet run -- "https://www.example.com"
+Build and launch with WinUI debug output:
+
+```powershell
+.\BuildAndRun.ps1 OpenWithTool.csproj
 ```
 
-## License
+To launch with a URL after building:
 
-[Add your license here]
+```powershell
+winapp run .\bin\x64\Debug\net10.0-windows10.0.26100.0\win-x64 --args "https://www.example.com"
+```
 
-## Contributing
+## Package And Install
 
-[Add contribution guidelines here]
+Build a Release MSIX signed with a generated development certificate:
+
+```powershell
+.\build.ps1 -Package
+```
+
+Trust the generated certificate once from an elevated terminal, then install the package:
+
+```powershell
+winapp cert install .\OpenWithTool_cert.pfx
+Add-AppxPackage .\OpenWithTool_1.3.0.0_x64.msix
+```
+
+Development certificates are for local sideloading only. Use an organization or Store certificate and a trusted timestamp for distribution.
+
+## Browser Registration
+
+1. Open **Settings** in OpenWith Tool.
+2. Select **Register** and approve the Windows elevation prompt.
+3. Open **Default apps** from the same settings page.
+4. Choose OpenWith Tool for the HTTP and HTTPS associations.
+
+Registration writes machine-wide browser and protocol entries. Normal link selection continues to run without administrator privileges.
+
+## Usage
+
+When OpenWith Tool receives a link, select a browser and optional profile, then choose **Open**. Moving the pointer or using the keyboard stops the auto-selection countdown. Enable **Remember for this site** to store an exact URL, domain, or path rule.
+
+Use **Sites** to review, add, or remove remembered rules. Use the pin command on a browser row to make its profile picker the default main view.
+
+## Supported Browsers
+
+- Google Chrome
+- Mozilla Firefox
+- Microsoft Edge
+- Opera
+- Brave Browser
+- Vivaldi
+- Other browsers registered with Windows
+
+## Project Layout
+
+- `Views/`: WinUI windows and UI event wiring.
+- `ViewModels/`: CommunityToolkit.Mvvm state and commands.
+- `Services/`: configuration, browser detection and launch, icons, registration, and window interop.
+- `Models/`: settings, cache, browser, profile, and remembered-site models.

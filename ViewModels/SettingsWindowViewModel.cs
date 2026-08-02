@@ -1,21 +1,21 @@
-using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using OpenWithTool.Models;
 using OpenWithTool.Services;
 
 namespace OpenWithTool.ViewModels;
 
-public class SettingsWindowViewModel : INotifyPropertyChanged
+public partial class SettingsWindowViewModel : ObservableObject
 {
     private readonly IConfigurationService _configurationService;
     private readonly IUrlProtocolRegistrationService _urlProtocolRegistrationService;
-    
     private AppSettings _settings = new();
-    private bool _isRegisteredAsDefaultBrowser;
-    private string _statusMessage = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsRegisteredAsDefaultBrowser { get; set; }
+
+    [ObservableProperty]
+    public partial string StatusMessage { get; set; } = string.Empty;
 
     public SettingsWindowViewModel(
         IConfigurationService configurationService,
@@ -23,13 +23,6 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
     {
         _configurationService = configurationService;
         _urlProtocolRegistrationService = urlProtocolRegistrationService;
-
-        // Commands
-        SaveCommand = new RelayCommand(async () => await SaveSettingsAsync());
-        CancelCommand = new RelayCommand(() => RequestClose?.Invoke());
-        RegisterBrowserCommand = new RelayCommand(async () => await RegisterAsBrowserAsync());
-        UnregisterBrowserCommand = new RelayCommand(async () => await UnregisterAsBrowserAsync());
-        OpenDefaultAppsCommand = new RelayCommand(() => OpenDefaultAppsSettings());
     }
 
     public int AutoSelectTimeoutSeconds
@@ -37,9 +30,20 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
         get => _settings.AutoSelectTimeoutSeconds;
         set
         {
-            _settings.AutoSelectTimeoutSeconds = Math.Max(1, Math.Min(30, value));
+            var constrainedValue = Math.Clamp(value, 1, 30);
+            if (_settings.AutoSelectTimeoutSeconds == constrainedValue)
+                return;
+
+            _settings.AutoSelectTimeoutSeconds = constrainedValue;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(AutoSelectTimeoutSecondsValue));
         }
+    }
+
+    public double AutoSelectTimeoutSecondsValue
+    {
+        get => AutoSelectTimeoutSeconds;
+        set => AutoSelectTimeoutSeconds = (int)Math.Round(value);
     }
 
     public int CacheDurationHours
@@ -47,9 +51,20 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
         get => _settings.CacheDurationHours;
         set
         {
-            _settings.CacheDurationHours = Math.Max(1, Math.Min(168, value)); // 1 hour to 1 week
+            var constrainedValue = Math.Clamp(value, 1, 168);
+            if (_settings.CacheDurationHours == constrainedValue)
+                return;
+
+            _settings.CacheDurationHours = constrainedValue;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CacheDurationHoursValue));
         }
+    }
+
+    public double CacheDurationHoursValue
+    {
+        get => CacheDurationHours;
+        set => CacheDurationHours = (int)Math.Round(value);
     }
 
     public bool EnableAutoSelect
@@ -57,6 +72,9 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
         get => _settings.EnableAutoSelect;
         set
         {
+            if (_settings.EnableAutoSelect == value)
+                return;
+
             _settings.EnableAutoSelect = value;
             OnPropertyChanged();
         }
@@ -67,138 +85,90 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
         get => _settings.ShowSettingsButton;
         set
         {
+            if (_settings.ShowSettingsButton == value)
+                return;
+
             _settings.ShowSettingsButton = value;
             OnPropertyChanged();
         }
     }
 
-    public bool IsRegisteredAsDefaultBrowser
-    {
-        get => _isRegisteredAsDefaultBrowser;
-        set
-        {
-            _isRegisteredAsDefaultBrowser = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set
-        {
-            _statusMessage = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool IsRunningAsAdministrator => _urlProtocolRegistrationService.IsRunningAsAdministrator();
-
-    public ICommand SaveCommand { get; }
-    public ICommand CancelCommand { get; }
-    public ICommand RegisterBrowserCommand { get; }
-    public ICommand UnregisterBrowserCommand { get; }
-    public ICommand OpenDefaultAppsCommand { get; }
-
     public event Action? RequestClose;
 
     public async Task InitializeAsync()
     {
         try
         {
-            _settings = await _configurationService.GetSettingsAsync();
-            
-            // Notify all properties changed
+            _settings = CloneSettings(await _configurationService.GetSettingsAsync());
             OnPropertyChanged(nameof(AutoSelectTimeoutSeconds));
+            OnPropertyChanged(nameof(AutoSelectTimeoutSecondsValue));
             OnPropertyChanged(nameof(CacheDurationHours));
+            OnPropertyChanged(nameof(CacheDurationHoursValue));
             OnPropertyChanged(nameof(EnableAutoSelect));
             OnPropertyChanged(nameof(ShowSettingsButton));
-
-            // Check registration status
             IsRegisteredAsDefaultBrowser = _urlProtocolRegistrationService.IsRegisteredAsDefaultBrowser();
-            
-            StatusMessage = "Settings loaded successfully";
+            StatusMessage = "Settings are up to date.";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error loading settings: {ex.Message}";
+            StatusMessage = $"Could not load settings: {ex.Message}";
         }
     }
 
-    private async Task SaveSettingsAsync()
+    [RelayCommand]
+    private async Task SaveAsync()
     {
         try
         {
             await _configurationService.SaveSettingsAsync(_settings);
-            StatusMessage = "Settings saved successfully";
+            RequestClose?.Invoke();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error saving settings: {ex.Message}";
+            StatusMessage = $"Could not save settings: {ex.Message}";
         }
     }
 
-    private Task RegisterAsBrowserAsync()
-    {
-        return Task.Run(() =>
-        {
-            try
-            {
-                if (!IsRunningAsAdministrator)
-                {
-                    StatusMessage = "Administrator privileges required for browser registration";
-                    return;
-                }
+    [RelayCommand]
+    private void Cancel() => RequestClose?.Invoke();
 
-                var success = _urlProtocolRegistrationService.RegisterAsDefaultBrowser();
-                if (success)
-                {
-                    IsRegisteredAsDefaultBrowser = true;
-                    StatusMessage = "Successfully registered as browser. You can now set this as your default browser in Windows Settings.";
-                }
-                else
-                {
-                    StatusMessage = "Failed to register as browser";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error registering as browser: {ex.Message}";
-            }
-        });
+    [RelayCommand]
+    private async Task RegisterBrowserAsync()
+    {
+        StatusMessage = "Registering OpenWith Tool...";
+        try
+        {
+            var success = await _urlProtocolRegistrationService.RegisterElevatedAsync();
+            IsRegisteredAsDefaultBrowser = success || _urlProtocolRegistrationService.IsRegisteredAsDefaultBrowser();
+            StatusMessage = success
+                ? "Registered. Choose OpenWith Tool in Windows Default apps."
+                : "Browser registration failed.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not register the app: {ex.Message}";
+        }
     }
 
-    private Task UnregisterAsBrowserAsync()
+    [RelayCommand]
+    private async Task UnregisterBrowserAsync()
     {
-        return Task.Run(() =>
+        StatusMessage = "Removing browser registration...";
+        try
         {
-            try
-            {
-                if (!IsRunningAsAdministrator)
-                {
-                    StatusMessage = "Administrator privileges required for browser unregistration";
-                    return;
-                }
-
-                var success = _urlProtocolRegistrationService.UnregisterAsDefaultBrowser();
-                if (success)
-                {
-                    IsRegisteredAsDefaultBrowser = false;
-                    StatusMessage = "Successfully unregistered as browser";
-                }
-                else
-                {
-                    StatusMessage = "Failed to unregister as browser";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error unregistering as browser: {ex.Message}";
-            }
-        });
+            var success = await _urlProtocolRegistrationService.UnregisterElevatedAsync();
+            IsRegisteredAsDefaultBrowser = !success && _urlProtocolRegistrationService.IsRegisteredAsDefaultBrowser();
+            StatusMessage = success ? "Browser registration removed." : "Browser unregistration failed.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not unregister the app: {ex.Message}";
+        }
     }
 
-    private void OpenDefaultAppsSettings()
+    [RelayCommand]
+    private void OpenDefaultApps()
     {
         try
         {
@@ -210,14 +180,23 @@ public class SettingsWindowViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Failed to open Windows Settings: {ex.Message}";
+            StatusMessage = $"Could not open Windows Settings: {ex.Message}";
         }
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    private static AppSettings CloneSettings(AppSettings settings)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return new AppSettings
+        {
+            AutoSelectTimeoutSeconds = settings.AutoSelectTimeoutSeconds,
+            CacheDurationHours = settings.CacheDurationHours,
+            LastSelectedBrowser = settings.LastSelectedBrowser,
+            LastSelectedProfile = settings.LastSelectedProfile,
+            FocusedBrowserName = settings.FocusedBrowserName,
+            EnableAutoSelect = settings.EnableAutoSelect,
+            ShowSettingsButton = settings.ShowSettingsButton,
+            RememberedSiteRules = new List<RememberedSiteRule>(settings.RememberedSiteRules)
+        };
     }
+
 }

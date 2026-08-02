@@ -1,5 +1,16 @@
 # Release Notes
 
+## 1.3.0 - 2026-07-31
+
+- Migrated the desktop interface from WPF to WinUI 3 and the Windows App SDK.
+- Added Fluent title bars, Mica surfaces, accessible controls, browser icons, and modern settings and remembered-site views.
+- Added packaged MSIX build and launch tooling for x64 and ARM64.
+- Added elevation-backed browser registration and complete cleanup during unregistration.
+- Preserved URL activation, remembered-site prelaunch, and non-interactive registration commands with clean process shutdown.
+- Fixed the Settings visibility preference and Save action behavior.
+- Reorganized the main window into compact browser, site-rule, status, and action rows with footer Settings and heading-level Refresh commands.
+- Replaced the template package artwork with a complete OpenWith Tool logo and multi-resolution Windows icon set.
+
 ## 1.2.0 - 2026-06-28
 
 - Added a focused browser view that remembers a preferred browser and shows its profiles as horizontal icon buttons.
