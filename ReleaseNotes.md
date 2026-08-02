@@ -9,6 +9,7 @@
 - Preserved URL activation, remembered-site prelaunch, and non-interactive registration commands with clean process shutdown.
 - Fixed the Settings visibility preference and Save action behavior.
 - Reorganized the main window into compact browser, site-rule, status, and action rows with footer Settings and heading-level Refresh commands.
+- Replaced the template package artwork with a complete OpenWith Tool logo and multi-resolution Windows icon set.
 
 ## 1.2.0 - 2026-06-28
 
